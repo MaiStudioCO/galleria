@@ -1,0 +1,21 @@
+{
+  "name": "@yufu/server",
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "vitest run", "typecheck": "tsc --noEmit" },
+  "dependencies": {
+    "@fastify/static": "^8.0.0",
+    "better-sqlite3": "^11.3.0",
+    "exifr": "^7.1.3",
+    "fastify": "^5.0.0",
+    "open": "^10.1.0",
+    "sharp": "^0.33.5"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.11",
+    "@types/node": "^22.5.0",
+    "piexifjs": "^1.0.6",
+    "typescript": "^5.6.0",
+    "vitest": "^3.0.0"
+  }
+}
