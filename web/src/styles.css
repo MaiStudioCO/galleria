@@ -1,0 +1,138 @@
+:root {
+  --panel-bg: rgba(255, 255, 255, 0.78);
+  --panel-fg: #1b1b1f;
+  --panel-border: rgba(0, 0, 0, 0.08);
+  --accent: #0a84ff;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --panel-bg: rgba(28, 28, 32, 0.78);
+    --panel-fg: #f2f2f7;
+    --panel-border: rgba(255, 255, 255, 0.1);
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: var(--panel-fg); }
+#root, .map { position: fixed; inset: 0; }
+
+.panel {
+  background: var(--panel-bg);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid var(--panel-border);
+  border-radius: 18px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+}
+
+.photo-marker {
+  position: relative;
+  width: 56px; height: 56px;
+  border-radius: 12px;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  background: #ccc;
+}
+.photo-marker img { width: 100%; height: 100%; object-fit: cover; border-radius: 10px; display: block; }
+.marker-badge {
+  position: absolute; top: -9px; right: -9px;
+  background: var(--accent); color: #fff;
+  font-size: 12px; font-weight: 600;
+  padding: 2px 7px; border-radius: 999px; border: 2px solid #fff;
+}
+
+.timeline-bar {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: 20px; width: min(880px, calc(100vw - 32px));
+  display: flex; gap: 12px; align-items: center;
+  padding: 12px 18px; z-index: 10;
+}
+.timeline-bar input[type="date"] {
+  border: 1px solid var(--panel-border); border-radius: 8px;
+  padding: 6px 8px; background: transparent; color: var(--panel-fg); font: inherit;
+}
+.slider-area { position: relative; flex: 1; height: 52px; }
+.histogram {
+  position: absolute; left: 10px; right: 10px; top: 0;
+  width: calc(100% - 20px); height: 34px;
+  fill: color-mix(in srgb, var(--accent) 45%, transparent);
+}
+.dual-slider { position: absolute; left: 10px; right: 10px; bottom: 2px; height: 22px; }
+.dual-slider::before {
+  content: ""; position: absolute; top: 10px; left: 0; right: 0; height: 3px;
+  border-radius: 2px; background: rgba(128, 128, 128, 0.35);
+}
+.range-fill { position: absolute; top: 10px; height: 3px; background: var(--accent); border-radius: 2px; }
+.handle {
+  position: absolute; top: 1px; width: 20px; height: 20px; margin-left: -10px;
+  border-radius: 50%; background: #fff; border: 1px solid rgba(0, 0, 0, 0.15);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3); cursor: grab; touch-action: none;
+}
+
+.grid-panel, .tray-panel {
+  position: fixed; top: 20px; right: 20px; bottom: 100px;
+  width: min(420px, calc(100vw - 40px));
+  display: flex; flex-direction: column; overflow: hidden; z-index: 20;
+}
+.grid-panel header, .tray-panel header, .sheet header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 16px; font-weight: 600;
+}
+.photo-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 4px; padding: 0 12px 12px; overflow-y: auto;
+}
+.photo-grid img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 6px; cursor: pointer; }
+
+.lightbox {
+  position: fixed; inset: 0; background: rgba(0, 0, 0, 0.92);
+  display: flex; align-items: center; justify-content: center; z-index: 50;
+}
+.lightbox img { max-width: 92vw; max-height: 86vh; border-radius: 4px; }
+.lightbox footer {
+  position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
+  display: flex; gap: 18px; color: #ddd; font-size: 13px;
+  background: rgba(0, 0, 0, 0.5); padding: 8px 16px; border-radius: 10px;
+}
+.lightbox .nav {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.15); color: #fff; border: none;
+  font-size: 28px; width: 44px; height: 44px; border-radius: 50%; cursor: pointer;
+}
+.lightbox .nav.prev { left: 20px; }
+.lightbox .nav.next { right: 20px; }
+
+.tray-button {
+  position: fixed; top: 20px; right: 20px; z-index: 15;
+  border: none; padding: 10px 16px; border-radius: 999px;
+  background: var(--panel-bg); color: var(--panel-fg);
+  backdrop-filter: blur(18px); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+  font: inherit; cursor: pointer;
+}
+.settings-button {
+  position: fixed; top: 20px; left: 20px; z-index: 15;
+  border: none; width: 42px; height: 42px; border-radius: 50%;
+  background: var(--panel-bg); color: var(--panel-fg);
+  backdrop-filter: blur(18px); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+  font-size: 18px; cursor: pointer;
+}
+
+.first-run {
+  position: fixed; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 14px; text-align: center;
+  background: var(--panel-bg); z-index: 100;
+}
+.first-run input { width: min(440px, 80vw); padding: 10px 12px; border-radius: 10px; border: 1px solid var(--panel-border); font: inherit; }
+.first-run button, .sheet button {
+  padding: 10px 18px; border-radius: 10px; border: none;
+  background: var(--accent); color: #fff; font: inherit; cursor: pointer;
+}
+.first-run .error { color: #ff453a; }
+
+.sheet {
+  position: fixed; top: 76px; left: 20px; width: min(380px, calc(100vw - 40px));
+  padding: 0 16px 16px; z-index: 30;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.sheet input { padding: 8px 10px; border-radius: 8px; border: 1px solid var(--panel-border); font: inherit; background: transparent; color: var(--panel-fg); }
+.sheet .row { display: flex; gap: 10px; }
