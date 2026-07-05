@@ -9,6 +9,8 @@ export interface FixtureOpts {
   takenAt?: string
   width?: number
   height?: number
+  /** EXIF orientation tag (1-8), e.g. 6 = rotate 90 CW */
+  orientation?: number
 }
 
 export async function makeJpeg(outPath: string, opts: FixtureOpts = {}): Promise<void> {
@@ -21,6 +23,7 @@ export async function makeJpeg(outPath: string, opts: FixtureOpts = {}): Promise
 
   const exifObj: Record<string, Record<number, unknown>> = { '0th': {}, Exif: {}, GPS: {} }
   if (opts.takenAt) exifObj.Exif[piexif.ExifIFD.DateTimeOriginal] = opts.takenAt
+  if (opts.orientation !== undefined) exifObj['0th'][piexif.ImageIFD.Orientation] = opts.orientation
   if (opts.lat !== undefined && opts.lon !== undefined) {
     exifObj.GPS[piexif.GPSIFD.GPSLatitudeRef] = opts.lat >= 0 ? 'N' : 'S'
     exifObj.GPS[piexif.GPSIFD.GPSLatitude] = piexif.GPSHelper.degToDmsRational(Math.abs(opts.lat))

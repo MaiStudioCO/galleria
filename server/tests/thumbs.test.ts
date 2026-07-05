@@ -1,4 +1,4 @@
-import { mkdtempSync, statSync } from 'node:fs'
+import { existsSync, mkdtempSync, statSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import sharp from 'sharp'
@@ -43,4 +43,34 @@ it('does not enlarge small photos', async () => {
 
 it('throws for unreadable source', async () => {
   await expect(getThumbPath(cache, { id: 4, path: join(dir, 'missing.jpg') }, 96)).rejects.toThrow()
+})
+
+it('leaves no partial file at the final cache path after a failed generation', async () => {
+  const missing = join(dir, 'missing2.jpg')
+  const out = join(cache, '5_96.jpg')
+  await expect(getThumbPath(cache, { id: 5, path: missing }, 96)).rejects.toThrow()
+  expect(existsSync(out)).toBe(false)
+})
+
+it('rotates per EXIF orientation', async () => {
+  const src = join(dir, 'rotated.jpg')
+  await makeJpeg(src, { width: 100, height: 80, orientation: 6 })
+  const out = await getThumbPath(cache, { id: 6, path: src }, 2048)
+  const meta = await sharp(out).metadata()
+  expect(meta.width).toBe(80)
+  expect(meta.height).toBe(100)
+  expect(meta.width!).toBeLessThan(meta.height!)
+  expect(meta.orientation).toBeUndefined()
+})
+
+it('handles concurrent calls for the same (id, size) safely', async () => {
+  const src = join(dir, 'concurrent.jpg')
+  await makeJpeg(src, { width: 300, height: 200 })
+  const results = await Promise.all(
+    Array.from({ length: 5 }, () => getThumbPath(cache, { id: 7, path: src }, 256)),
+  )
+  const expected = join(cache, '7_256.jpg')
+  for (const r of results) expect(r).toBe(expected)
+  const meta = await sharp(expected).metadata()
+  expect(meta.format).toBe('jpeg')
 })

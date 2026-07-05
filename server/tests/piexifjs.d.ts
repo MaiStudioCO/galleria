@@ -3,6 +3,7 @@ declare module 'piexifjs' {
     dump(exifObj: Record<string, Record<number, unknown>>): string
     insert(exifBytes: string, jpegData: string): string
     ExifIFD: { DateTimeOriginal: number }
+    ImageIFD: { Orientation: number }
     GPSIFD: {
       GPSLatitudeRef: number
       GPSLatitude: number
