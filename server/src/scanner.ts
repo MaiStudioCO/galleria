@@ -41,7 +41,15 @@ export async function scanFolder(db: Db, folder: string, onProgress?: ProgressFn
   await mapPool(files, CONCURRENCY, async (file) => {
     seen.add(file)
     const prev = known.get(file)
-    const st = await stat(file)
+    let st: Awaited<ReturnType<typeof stat>>
+    try {
+      st = await stat(file)
+    } catch {
+      result.skippedUnreadable++
+      done++
+      onProgress?.(done, files.length)
+      return
+    }
     if (prev && prev.mtime === Math.round(st.mtimeMs) && prev.size === st.size) {
       done++
       onProgress?.(done, files.length)
