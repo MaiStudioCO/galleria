@@ -11,13 +11,14 @@ export interface ClusterFeature {
     id?: number
     takenAt?: number
     photoId: number
+    newest?: number
   }
 }
 
 export function createClusterClient() {
   const worker = new Worker(new URL('./cluster.worker.ts', import.meta.url), { type: 'module' })
   let nextReq = 1
-  const pending = new Map<number, (msg: any) => void>()
+  const pending = new Map<number, { resolve: (msg: any) => void; reject: (err: unknown) => void }>()
   const rebuildListeners = new Set<() => void>()
 
   worker.onmessage = (e: MessageEvent) => {
@@ -25,15 +26,15 @@ export function createClusterClient() {
     if (msg.type === 'ready') {
       rebuildListeners.forEach((fn) => fn())
     } else if (msg.reqId !== undefined) {
-      pending.get(msg.reqId)?.(msg)
+      pending.get(msg.reqId)?.resolve(msg)
       pending.delete(msg.reqId)
     }
   }
 
   const request = <T>(payload: Record<string, unknown>): Promise<T> =>
-    new Promise((resolve) => {
+    new Promise((resolve, reject) => {
       const reqId = nextReq++
-      pending.set(reqId, resolve as (msg: unknown) => void)
+      pending.set(reqId, { resolve: resolve as (msg: unknown) => void, reject })
       worker.postMessage({ ...payload, reqId })
     })
 
@@ -50,6 +51,11 @@ export function createClusterClient() {
       request<{ leaves: ClusterFeature[] }>({ type: 'leaves', clusterId }).then((m) => m.leaves),
     getExpansionZoom: (clusterId: number) =>
       request<{ zoom: number }>({ type: 'expansionZoom', clusterId }).then((m) => m.zoom),
-    destroy: () => worker.terminate(),
+    destroy: () => {
+      pending.forEach(({ reject }) => reject(new Error('cluster client destroyed')))
+      pending.clear()
+      rebuildListeners.clear()
+      worker.terminate()
+    },
   }
 }
