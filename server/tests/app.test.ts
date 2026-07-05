@@ -82,3 +82,25 @@ it('POST /api/scan re-runs and reports via status', async () => {
   const result = await waitForScan(app)
   expect(result.scanned).toBe(3)
 })
+
+it('GET /api/photos/unlocated rejects non-numeric from', async () => {
+  const res = await app.inject({ method: 'GET', url: '/api/photos/unlocated?from=abc' })
+  expect(res.statusCode).toBe(400)
+  expect(res.json()).toEqual({ error: 'invalid query parameter' })
+})
+
+it('GET /api/photos/unlocated rejects negative page', async () => {
+  const res = await app.inject({ method: 'GET', url: '/api/photos/unlocated?page=-1' })
+  expect(res.statusCode).toBe(400)
+  expect(res.json()).toEqual({ error: 'invalid query parameter' })
+})
+
+it('GET /api/photos/:id returns 404 for non-numeric id', async () => {
+  const res = await app.inject({ method: 'GET', url: '/api/photos/abc' })
+  expect(res.statusCode).toBe(404)
+})
+
+it('GET /thumb/:id returns 404 for non-numeric id', async () => {
+  const res = await app.inject({ method: 'GET', url: '/thumb/abc?size=96' })
+  expect(res.statusCode).toBe(404)
+})

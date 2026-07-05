@@ -13,6 +13,11 @@ export interface AppContext {
   webDist?: string
 }
 
+function parseId(raw: string): number | null {
+  const n = Number(raw)
+  return Number.isInteger(n) && n >= 0 ? n : null
+}
+
 export async function buildApp(ctx: AppContext): Promise<FastifyInstance> {
   mkdirSync(ctx.dataDir, { recursive: true })
   const db = openDb(join(ctx.dataDir, 'index.db'))
@@ -23,17 +28,24 @@ export async function buildApp(ctx: AppContext): Promise<FastifyInstance> {
 
   app.get('/api/photos', async () => getPoints(db))
 
-  app.get('/api/photos/unlocated', async (req) => {
+  app.get('/api/photos/unlocated', async (req, reply) => {
     const q = req.query as Record<string, string | undefined>
-    return getUnlocated(db, {
-      from: q.from !== undefined ? Number(q.from) : undefined,
-      to: q.to !== undefined ? Number(q.to) : undefined,
-      page: q.page !== undefined ? Number(q.page) : 0,
-    })
+    const from = q.from !== undefined ? Number(q.from) : undefined
+    const to = q.to !== undefined ? Number(q.to) : undefined
+    const page = q.page !== undefined ? Number(q.page) : 0
+    if (
+      (from !== undefined && !Number.isFinite(from)) ||
+      (to !== undefined && !Number.isFinite(to)) ||
+      !Number.isInteger(page) || page < 0
+    ) {
+      return reply.code(400).send({ error: 'invalid query parameter' })
+    }
+    return getUnlocated(db, { from, to, page })
   })
 
   app.get('/api/photos/:id', async (req, reply) => {
-    const photo = getPhoto(db, Number((req.params as { id: string }).id))
+    const id = parseId((req.params as { id: string }).id)
+    const photo = id !== null ? getPhoto(db, id) : undefined
     if (!photo) return reply.code(404).send({ error: 'not found' })
     return photo
   })
@@ -41,7 +53,8 @@ export async function buildApp(ctx: AppContext): Promise<FastifyInstance> {
   app.get('/thumb/:id', async (req, reply) => {
     const size = Number((req.query as { size?: string }).size ?? 256)
     if (!THUMB_SIZES.has(size)) return reply.code(400).send({ error: 'invalid size' })
-    const photo = getPhoto(db, Number((req.params as { id: string }).id))
+    const id = parseId((req.params as { id: string }).id)
+    const photo = id !== null ? getPhoto(db, id) : undefined
     if (!photo) return reply.code(404).send({ error: 'not found' })
     try {
       const p = await getThumbPath(join(ctx.dataDir, 'thumbs'), photo, size)
