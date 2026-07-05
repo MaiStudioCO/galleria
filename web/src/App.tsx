@@ -1,22 +1,51 @@
-import maplibregl from 'maplibre-gl'
-import 'maplibre-gl/dist/maplibre-gl.css'
-import { useEffect, useRef } from 'react'
-
-const LIGHT = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json'
-const DARK = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json'
+import { useCallback, useEffect, useState } from 'react'
+import { fetchConfig, fetchPoints, type Config, type PhotoPoint } from './api'
+import { GridPanel } from './components/GridPanel'
+import { MapView } from './components/MapView'
+import { dateSpan } from './lib/points'
 
 export default function App() {
-  const el = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    const dark = window.matchMedia('(prefers-color-scheme: dark)').matches
-    const map = new maplibregl.Map({
-      container: el.current!,
-      style: dark ? DARK : LIGHT,
-      center: [15, 30],
-      zoom: 1.5,
-      maxZoom: 18,
-    })
-    return () => map.remove()
+  const [config, setConfig] = useState<Config | undefined>(undefined)
+  const [points, setPoints] = useState<PhotoPoint[]>([])
+  const [span, setSpan] = useState<[number, number] | null>(null)
+  const [range, setRange] = useState<[number, number] | null>(null)
+  const [gridPhotos, setGridPhotos] = useState<{ id: number }[] | null>(null)
+  const [lightbox, setLightbox] = useState<{ ids: number[]; index: number } | null>(null)
+
+  const loadLibrary = useCallback(async () => {
+    const pts = await fetchPoints()
+    setPoints(pts)
+    const s = dateSpan(pts)
+    setSpan(s)
+    setRange(s)
   }, [])
-  return <div ref={el} className="map" />
+
+  useEffect(() => {
+    void fetchConfig().then((c) => {
+      setConfig(c)
+      if (c.photoDir) void loadLibrary()
+    })
+  }, [loadLibrary])
+
+  if (config === undefined) return null
+
+  return (
+    <>
+      <MapView
+        points={points}
+        range={range}
+        onOpenGrid={(photos) => setGridPhotos(photos)}
+        onOpenPhoto={(id) => setLightbox({ ids: [id], index: 0 })}
+      />
+      {gridPhotos && (
+        <GridPanel
+          photos={gridPhotos}
+          onClose={() => setGridPhotos(null)}
+          onPhoto={(i) => setLightbox({ ids: gridPhotos.map((p) => p.id), index: i })}
+        />
+      )}
+      {/* Lightbox mounts in Task 14; log for now so clicks are observable */}
+      {lightbox && <div style={{ display: 'none' }} data-testid="lightbox-placeholder" />}
+    </>
+  )
 }
