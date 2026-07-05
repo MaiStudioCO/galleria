@@ -52,7 +52,7 @@ Indexes on `taken_at` and `(lat, lon)`. 50k rows: date+geo queries return in mil
 - 96 = map markers, 256 = grid cells, 2048 = lightbox; original file also downloadable.
 
 ### API
-- `GET /api/photos?from&to` — full geolocated point list (id, lat, lon, taken_at). ~2 MB JSON at 50k; fetched once, filtered client-side thereafter.
+- `GET /api/photos` — full geolocated point list (id, lat, lon, taken_at). ~2 MB JSON at 50k; fetched once at startup, all date filtering happens client-side.
 - `GET /api/photos/unlocated?from&to&page` — paginated unlocated photos.
 - `GET /api/photos/:id` — full metadata for lightbox.
 - `GET /api/config` / `PUT /api/config` — folder path.
