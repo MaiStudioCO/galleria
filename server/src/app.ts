@@ -58,7 +58,16 @@ export async function buildApp(ctx: AppContext): Promise<FastifyInstance> {
     if (!st?.isDirectory()) return reply.code(400).send({ error: 'not a directory' })
     const conflict = findNestingConflict(listSources(db).map((s) => s.path), path)
     if (conflict) return reply.code(409).send({ error: `overlaps existing source ${conflict}` })
-    const source = addSource(db, path)
+    let source
+    try {
+      source = addSource(db, path)
+    } catch (err) {
+      const code = (err as { code?: string }).code
+      if (typeof code === 'string' && code.startsWith('SQLITE_CONSTRAINT')) {
+        return reply.code(409).send({ error: `overlaps existing source ${path}` })
+      }
+      throw err
+    }
     void scanManager.start(db, source.id)
     return reply.code(201).send({ ...source, exists: true })
   })
