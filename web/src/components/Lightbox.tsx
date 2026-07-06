@@ -13,8 +13,12 @@ export function Lightbox({ ids, index, onClose, onIndex }: LightboxProps) {
   const id = ids[index]
 
   useEffect(() => {
+    let ignore = false
     setDetail(null)
-    void fetchPhoto(id).then(setDetail).catch(() => {})
+    void fetchPhoto(id)
+      .then((d) => { if (!ignore) setDetail(d) })
+      .catch(() => {})
+    return () => { ignore = true }
   }, [id])
 
   useEffect(() => {
