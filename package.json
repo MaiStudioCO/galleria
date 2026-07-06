@@ -6,11 +6,13 @@
   "scripts": {
     "start": "npm run build -w web && tsx server/src/index.ts",
     "dev": "concurrently \"tsx watch server/src/index.ts\" \"npm run dev -w web\"",
-    "test": "npm run test --workspaces --if-present"
+    "test": "npm run test --workspaces --if-present",
+    "e2e": "playwright test"
   },
   "engines": { "node": ">=20.19" },
   "devDependencies": {
     "tsx": "^4.19.0",
-    "concurrently": "^9.0.0"
+    "concurrently": "^9.0.0",
+    "@playwright/test": "^1.48.0"
   }
 }
