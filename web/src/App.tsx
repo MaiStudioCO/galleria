@@ -29,7 +29,7 @@ export default function App() {
     setRange(library.bounds)
   }, [])
 
-  useEffect(() => {
+  const reloadConfig = useCallback(() => {
     setConfigError(false)
     void fetchConfig()
       .then((c) => {
@@ -39,24 +39,16 @@ export default function App() {
       .catch(() => setConfigError(true))
   }, [loadLibrary])
 
+  useEffect(() => {
+    reloadConfig()
+  }, [reloadConfig])
+
   if (configError) {
     return (
       <div className="first-run">
         <h1>yufu</h1>
         <p>Can't reach the local server. Is it still running?</p>
-        <button
-          onClick={() => {
-            setConfigError(false)
-            void fetchConfig()
-              .then((c) => {
-                setConfig(c)
-                if (c.photoDir) void loadLibrary()
-              })
-              .catch(() => setConfigError(true))
-          }}
-        >
-          Retry
-        </button>
+        <button onClick={reloadConfig}>Retry</button>
       </div>
     )
   }
@@ -65,17 +57,7 @@ export default function App() {
 
   if (!config.photoDir) {
     return (
-      <FirstRun
-        onConfigured={() => {
-          setConfigError(false)
-          void fetchConfig()
-            .then((c) => {
-              setConfig(c)
-              void loadLibrary()
-            })
-            .catch(() => setConfigError(true))
-        }}
-      />
+      <FirstRun onConfigured={reloadConfig} />
     )
   }
 
@@ -122,7 +104,15 @@ export default function App() {
         ⚙︎
       </button>
       {settingsOpen && (
-        <SettingsSheet config={config} onClose={() => setSettingsOpen(false)} onRescanned={loadLibrary} />
+        <SettingsSheet
+          config={config}
+          onClose={() => setSettingsOpen(false)}
+          // Re-fetch config too so a fixed folder clears the missing-folder banner.
+          onRescanned={() => {
+            reloadConfig()
+            void loadLibrary()
+          }}
+        />
       )}
     </>
   )
