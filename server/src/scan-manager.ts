@@ -18,7 +18,8 @@ export class ScanManager extends EventEmitter {
     this.running = true
     this.progress = { done: 0, total: 0 }
     try {
-      const result = await scanFolder(db, folder, (done, total) => {
+      const result = await scanFolder(db, 0, folder, (done, total) => {
+        // BRIDGE(Task 4)
         this.progress = { done, total }
         this.emit('progress', this.progress)
       })
