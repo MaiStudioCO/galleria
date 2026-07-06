@@ -17,6 +17,7 @@ export default function App() {
   const [gridPhotos, setGridPhotos] = useState<{ id: number }[] | null>(null)
   const [lightbox, setLightbox] = useState<{ ids: number[]; index: number } | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [configError, setConfigError] = useState(false)
 
   const loadLibrary = useCallback(async () => {
     const pts = await fetchPoints()
@@ -27,11 +28,36 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    void fetchConfig().then((c) => {
-      setConfig(c)
-      if (c.photoDir) void loadLibrary()
-    })
+    setConfigError(false)
+    void fetchConfig()
+      .then((c) => {
+        setConfig(c)
+        if (c.photoDir) void loadLibrary()
+      })
+      .catch(() => setConfigError(true))
   }, [loadLibrary])
+
+  if (configError) {
+    return (
+      <div className="first-run">
+        <h1>yufu</h1>
+        <p>Can't reach the local server. Is it still running?</p>
+        <button
+          onClick={() => {
+            setConfigError(false)
+            void fetchConfig()
+              .then((c) => {
+                setConfig(c)
+                if (c.photoDir) void loadLibrary()
+              })
+              .catch(() => setConfigError(true))
+          }}
+        >
+          Retry
+        </button>
+      </div>
+    )
+  }
 
   if (config === undefined) return null
 
@@ -39,10 +65,13 @@ export default function App() {
     return (
       <FirstRun
         onConfigured={() => {
-          void fetchConfig().then((c) => {
-            setConfig(c)
-            void loadLibrary()
-          })
+          setConfigError(false)
+          void fetchConfig()
+            .then((c) => {
+              setConfig(c)
+              void loadLibrary()
+            })
+            .catch(() => setConfigError(true))
         }}
       />
     )
