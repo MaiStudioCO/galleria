@@ -78,7 +78,7 @@ export async function buildApp(ctx: AppContext): Promise<FastifyInstance> {
     const st = await stat(body.photoDir).catch(() => null)
     if (!st?.isDirectory()) return reply.code(400).send({ error: 'not a directory' })
     saveConfig(ctx.dataDir, { photoDir: body.photoDir })
-    void scanManager.start(db, body.photoDir)
+    void scanManager.start(db) // BRIDGE(Task 5)
     return { photoDir: body.photoDir }
   })
 
@@ -86,7 +86,7 @@ export async function buildApp(ctx: AppContext): Promise<FastifyInstance> {
     const { photoDir } = loadConfig(ctx.dataDir)
     if (!photoDir) return reply.code(400).send({ error: 'no folder configured' })
     if (scanManager.running) return reply.code(409).send({ error: 'scan in progress' })
-    void scanManager.start(db, photoDir)
+    void scanManager.start(db) // BRIDGE(Task 5)
     return reply.code(202).send({ started: true })
   })
 
