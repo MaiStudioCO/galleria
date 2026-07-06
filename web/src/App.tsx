@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { fetchConfig, fetchPoints, type Config, type PhotoPoint } from './api'
 import { GridPanel } from './components/GridPanel'
+import { Lightbox } from './components/Lightbox'
 import { MapView } from './components/MapView'
 import { TimelineBar } from './components/TimelineBar'
 import { dateSpan, histogram } from './lib/points'
@@ -48,7 +49,14 @@ export default function App() {
           onPhoto={(i) => setLightbox({ ids: gridPhotos.map((p) => p.id), index: i })}
         />
       )}
-      {lightbox && <div style={{ display: 'none' }} data-testid="lightbox-placeholder" />}
+      {lightbox && (
+        <Lightbox
+          ids={lightbox.ids}
+          index={lightbox.index}
+          onClose={() => setLightbox(null)}
+          onIndex={(i) => setLightbox({ ...lightbox, index: i })}
+        />
+      )}
     </>
   )
 }
