@@ -120,3 +120,16 @@ it('GET /api/config reports whether the folder still exists', async () => {
   const res = await orphanApp.inject({ method: 'GET', url: '/api/config' })
   expect(res.json()).toEqual({ photoDir: gone, folderExists: false })
 })
+
+it('GET /api/library returns date bounds spanning unlocated photos', async () => {
+  const res = await app.inject({ method: 'GET', url: '/api/library' })
+  expect(res.statusCode).toBe(200)
+  // nogps.jpg (2024-01-01) sits between geo.jpg (2023-05-01) and geo2.jpg (2024-07-01).
+  const points = (await app.inject({ method: 'GET', url: '/api/photos' })).json()
+  const takenAts = points.map((p: { takenAt: number }) => p.takenAt)
+  expect(res.json().bounds).toEqual([Math.min(...takenAts), Math.max(...takenAts)])
+
+  const emptyApp = await buildApp({ dataDir: mkdtempSync(join(tmpdir(), 'yufu-api-empty-')) })
+  const empty = await emptyApp.inject({ method: 'GET', url: '/api/library' })
+  expect(empty.json()).toEqual({ bounds: null })
+})

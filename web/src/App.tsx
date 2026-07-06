@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { fetchConfig, fetchPoints, type Config, type PhotoPoint } from './api'
+import { fetchConfig, fetchLibrary, fetchPoints, type Config, type PhotoPoint } from './api'
 import { FirstRun } from './components/FirstRun'
 import { GridPanel } from './components/GridPanel'
 import { Lightbox } from './components/Lightbox'
@@ -7,7 +7,7 @@ import { MapView } from './components/MapView'
 import { SettingsSheet } from './components/SettingsSheet'
 import { TimelineBar } from './components/TimelineBar'
 import { UnlocatedTray } from './components/UnlocatedTray'
-import { dateSpan, histogram } from './lib/points'
+import { histogram } from './lib/points'
 
 export default function App() {
   const [config, setConfig] = useState<Config | undefined>(undefined)
@@ -21,11 +21,12 @@ export default function App() {
   const [focus, setFocus] = useState<{ lat: number; lon: number; seq: number } | null>(null)
 
   const loadLibrary = useCallback(async () => {
-    const pts = await fetchPoints()
+    const [pts, library] = await Promise.all([fetchPoints(), fetchLibrary()])
     setPoints(pts)
-    const s = dateSpan(pts)
-    setSpan(s)
-    setRange(s)
+    // Bounds cover the whole library (unlocated included), so an all-unlocated
+    // folder still gets a timeline and tray instead of a blank app.
+    setSpan(library.bounds)
+    setRange(library.bounds)
   }, [])
 
   useEffect(() => {

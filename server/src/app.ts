@@ -4,7 +4,7 @@ import { createReadStream, existsSync, mkdirSync } from 'node:fs'
 import { stat } from 'node:fs/promises'
 import { join } from 'node:path'
 import { loadConfig, saveConfig } from './config.js'
-import { getPhoto, getPoints, getUnlocated, openDb } from './db.js'
+import { getDateBounds, getPhoto, getPoints, getUnlocated, openDb } from './db.js'
 import { ScanManager } from './scan-manager.js'
 import { getThumbPath, THUMB_SIZES } from './thumbs.js'
 
@@ -27,6 +27,8 @@ export async function buildApp(ctx: AppContext): Promise<FastifyInstance> {
   app.get('/health', async () => ({ ok: true }))
 
   app.get('/api/photos', async () => getPoints(db))
+
+  app.get('/api/library', async () => ({ bounds: getDateBounds(db) }))
 
   app.get('/api/photos/unlocated', async (req, reply) => {
     const q = req.query as Record<string, string | undefined>

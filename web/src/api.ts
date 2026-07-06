@@ -17,6 +17,10 @@ export interface PhotoDetail {
   width: number
   height: number
 }
+export interface Library {
+  /** Min/max takenAt across the whole library (located or not); null when empty. */
+  bounds: [number, number] | null
+}
 export interface UnlocatedResult {
   total: number
   photos: { id: number; path: string; takenAt: number; width: number; height: number }[]
@@ -30,6 +34,7 @@ async function get<T>(url: string): Promise<T> {
 
 export const fetchConfig = () => get<Config>('/api/config')
 export const fetchPoints = () => get<PhotoPoint[]>('/api/photos')
+export const fetchLibrary = () => get<Library>('/api/library')
 export const fetchPhoto = (id: number) => get<PhotoDetail>(`/api/photos/${id}`)
 export const fetchUnlocated = (q: { from?: number; to?: number; page?: number }) => {
   const params = new URLSearchParams()

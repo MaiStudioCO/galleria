@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import {
-  deleteByPaths, getIndexState, getPhoto, getPoints, getUnlocated, openDb, upsertPhoto,
+  deleteByPaths, getDateBounds, getIndexState, getPhoto, getPoints, getUnlocated, openDb, upsertPhoto,
 } from '../src/db.js'
 import type { PhotoRecord } from '../src/exif.js'
 
@@ -65,5 +65,17 @@ describe('getPhoto / getIndexState / deleteByPaths', () => {
     deleteByPaths(db, ['/p/a.jpg'])
     expect(getIndexState(db).has('/p/a.jpg')).toBe(false)
     expect(getIndexState(db).size).toBe(1)
+  })
+})
+
+describe('getDateBounds', () => {
+  it('returns null when the table is empty', () => {
+    expect(getDateBounds(db)).toBeNull()
+  })
+  it('spans all photos including unlocated ones', () => {
+    upsertPhoto(db, rec({ path: '/p/geo.jpg', takenAt: 2000 }))
+    upsertPhoto(db, rec({ path: '/p/early.jpg', lat: null, lon: null, takenAt: 500 }))
+    upsertPhoto(db, rec({ path: '/p/late.jpg', lat: null, lon: null, takenAt: 9000 }))
+    expect(getDateBounds(db)).toEqual([500, 9000])
   })
 })

@@ -43,6 +43,15 @@ export function getPoints(db: Db): PhotoPointRow[] {
     .all() as PhotoPointRow[]
 }
 
+/** Min/max taken_at across ALL photos (located or not); null when the table is empty. */
+export function getDateBounds(db: Db): [number, number] | null {
+  const row = db
+    .prepare(`SELECT MIN(taken_at) AS min, MAX(taken_at) AS max FROM photos`)
+    .get() as { min: number | null; max: number | null }
+  if (row.min === null || row.max === null) return null
+  return [row.min, row.max]
+}
+
 export interface UnlocatedQuery { from?: number; to?: number; page?: number; pageSize?: number }
 export interface UnlocatedRow { id: number; path: string; takenAt: number; width: number; height: number }
 
