@@ -6,9 +6,15 @@ export class ScanManager extends EventEmitter {
   running = false
   progress = { done: 0, total: 0 }
   lastResult: ScanResult | null = null
+  private queued: { db: Db; folder: string } | null = null
 
   async start(db: Db, folder: string): Promise<boolean> {
-    if (this.running) return false
+    if (this.running) {
+      // Don't drop a folder change made mid-scan: queue it (latest wins) and
+      // run it as soon as the current scan finishes.
+      this.queued = { db, folder }
+      return true
+    }
     this.running = true
     this.progress = { done: 0, total: 0 }
     try {
@@ -24,6 +30,11 @@ export class ScanManager extends EventEmitter {
       return false
     } finally {
       this.running = false
+      const next = this.queued
+      if (next) {
+        this.queued = null
+        void this.start(next.db, next.folder)
+      }
     }
   }
 }
