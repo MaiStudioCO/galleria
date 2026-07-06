@@ -124,7 +124,10 @@ it('GET /api/config reports whether the folder still exists', async () => {
 it('GET /api/library returns date bounds spanning unlocated photos', async () => {
   const res = await app.inject({ method: 'GET', url: '/api/library' })
   expect(res.statusCode).toBe(200)
-  // nogps.jpg (2024-01-01) sits between geo.jpg (2023-05-01) and geo2.jpg (2024-07-01).
+  // In the shared fixture set, nogps.jpg (2024-01-01) sits between geo.jpg
+  // (2023-05-01) and geo2.jpg (2024-07-01), so this only checks that bounds
+  // cover the full located+unlocated range here, not that unlocated photos
+  // outside the located span are included (see dedicated test below).
   const points = (await app.inject({ method: 'GET', url: '/api/photos' })).json()
   const takenAts = points.map((p: { takenAt: number }) => p.takenAt)
   expect(res.json().bounds).toEqual([Math.min(...takenAts), Math.max(...takenAts)])
@@ -132,4 +135,21 @@ it('GET /api/library returns date bounds spanning unlocated photos', async () =>
   const emptyApp = await buildApp({ dataDir: mkdtempSync(join(tmpdir(), 'yufu-api-empty-')) })
   const empty = await emptyApp.inject({ method: 'GET', url: '/api/library' })
   expect(empty.json()).toEqual({ bounds: null })
+})
+
+it('GET /api/library bounds include an unlocated photo outside the located span', async () => {
+  const isolatedPhotoDir = mkdtempSync(join(tmpdir(), 'yufu-api-bounds-photos-'))
+  await makeJpeg(join(isolatedPhotoDir, 'geo.jpg'), { lat: 41, lon: 29, takenAt: '2024:06:01 10:00:00' })
+  await makeJpeg(join(isolatedPhotoDir, 'nogps.jpg'), { takenAt: '2020:01:01 10:00:00' })
+
+  const isolatedApp = await buildApp({ dataDir: mkdtempSync(join(tmpdir(), 'yufu-api-bounds-data-')) })
+  await isolatedApp.inject({ method: 'PUT', url: '/api/config', payload: { photoDir: isolatedPhotoDir } })
+  await waitForScan(isolatedApp)
+
+  const res = await isolatedApp.inject({ method: 'GET', url: '/api/library' })
+  expect(res.statusCode).toBe(200)
+  const { bounds } = res.json()
+  expect(bounds[0]).toBeLessThan(bounds[1])
+  expect(new Date(bounds[0]).getUTCFullYear()).toBe(2020)
+  expect(new Date(bounds[1]).getUTCFullYear()).toBe(2024)
 })
