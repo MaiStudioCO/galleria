@@ -8,10 +8,12 @@ export const THUMB_SIZES = new Set([96, 256, 2048])
 
 export async function getThumbPath(
   cacheDir: string,
-  photo: { id: number; path: string },
+  photo: { id: number; path: string; mtime: number },
   size: number,
 ): Promise<string> {
-  const out = join(cacheDir, `${photo.id}_${size}.jpg`)
+  // mtime is part of the key: SQLite reuses rowids after deletion, and in-place
+  // edits keep the id — without it a stale thumbnail would be served forever.
+  const out = join(cacheDir, `${photo.id}_${photo.mtime}_${size}.jpg`)
   if (existsSync(out)) return out
   await mkdir(cacheDir, { recursive: true })
   const tmp = join(cacheDir, `${photo.id}_${size}.${process.pid}.${randomUUID()}.tmp`)
