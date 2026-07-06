@@ -4,6 +4,7 @@ import { GridPanel } from './components/GridPanel'
 import { Lightbox } from './components/Lightbox'
 import { MapView } from './components/MapView'
 import { TimelineBar } from './components/TimelineBar'
+import { UnlocatedTray } from './components/UnlocatedTray'
 import { dateSpan, histogram } from './lib/points'
 
 export default function App() {
@@ -42,6 +43,7 @@ export default function App() {
         onOpenPhoto={(id) => setLightbox({ ids: [id], index: 0 })}
       />
       {span && range && <TimelineBar span={span} range={range} bins={bins} onChange={setRange} />}
+      {range && <UnlocatedTray range={range} onOpenPhoto={(ids, index) => setLightbox({ ids, index })} />}
       {gridPhotos && (
         <GridPanel
           photos={gridPhotos}
