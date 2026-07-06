@@ -130,8 +130,18 @@ export function MapView({ points, range, focus, onOpenGrid, onOpenPhoto }: MapVi
     if (points.length > 0) clientRef.current?.init(points)
   }, [points])
 
+  // Each filter is a full recluster in the worker, so slider drags are
+  // debounced; only the very first range (initial load) applies immediately.
+  const hadRange = useRef(false)
   useEffect(() => {
-    if (range) clientRef.current?.filter(range[0], range[1])
+    if (!range) return
+    if (!hadRange.current) {
+      hadRange.current = true
+      clientRef.current?.filter(range[0], range[1])
+      return
+    }
+    const timer = window.setTimeout(() => clientRef.current?.filter(range[0], range[1]), 80)
+    return () => window.clearTimeout(timer)
   }, [range])
 
   useEffect(() => {
