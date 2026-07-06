@@ -147,6 +147,74 @@ describe('legacy migration', () => {
   })
 })
 
+describe('orphan photo purge', () => {
+  it('purges rows whose source_id no longer matches any source, on reopen, but keeps legitimate rows', () => {
+    const file = join(mkdtempSync(join(tmpdir(), 'yufu-db-orphan-')), 'index.db')
+    const first = openDb(file)
+    const legit = addSource(first, '/p')
+    upsertPhoto(first, rec({ path: '/p/a.jpg' }), legit.id)
+    // Simulate an orphan upsert: a photo row pointing at a source id that does not exist.
+    upsertPhoto(first, rec({ path: '/orphan/b.jpg' }), 999)
+    first.close()
+
+    const reopened = openDb(file)
+    const state = getIndexState(reopened, legit.id)
+    expect(state.has('/p/a.jpg')).toBe(true)
+    expect(state.size).toBe(1)
+    const orphanState = getIndexState(reopened, 999)
+    expect(orphanState.size).toBe(0)
+  })
+
+  it('does not delete pre-adoption legacy rows at source_id 0', () => {
+    const file = join(mkdtempSync(join(tmpdir(), 'yufu-db-orphan-legacy-')), 'index.db')
+    const legacy = new Database(file)
+    legacy.exec(`
+      CREATE TABLE photos (
+        id INTEGER PRIMARY KEY, path TEXT NOT NULL UNIQUE, lat REAL, lon REAL,
+        taken_at INTEGER NOT NULL, width INTEGER NOT NULL, height INTEGER NOT NULL,
+        mtime INTEGER NOT NULL, size INTEGER NOT NULL
+      );
+      INSERT INTO photos (path, lat, lon, taken_at, width, height, mtime, size)
+      VALUES ('/legacy/a.jpg', 41, 29, 1000, 10, 10, 1, 1);
+    `)
+    legacy.close()
+
+    const migrated = openDb(file)
+    // source_id 0 rows must survive the orphan purge so adoption can still claim them.
+    adoptLegacyPhotoDir(migrated, '/legacy')
+    const sources = listSources(migrated)
+    expect(sources).toEqual([{ id: sources[0].id, path: '/legacy', enabled: true, photoCount: 1 }])
+    expect(getPoints(migrated)).toHaveLength(1)
+  })
+})
+
+describe('addSource duplicate path', () => {
+  it('throws a SQLITE_CONSTRAINT error on a duplicate path (route maps this to 409)', () => {
+    addSource(db, '/dup')
+    let caught: unknown
+    try {
+      addSource(db, '/dup')
+    } catch (e) {
+      caught = e
+    }
+    expect(caught).toBeDefined()
+    expect((caught as { code?: string }).code?.startsWith('SQLITE_CONSTRAINT')).toBe(true)
+  })
+})
+
+describe('source id reuse', () => {
+  it('does not reuse a removed source id (AUTOINCREMENT)', () => {
+    const file = join(mkdtempSync(join(tmpdir(), 'yufu-db-noreuse-')), 'index.db')
+    const fileDb = openDb(file)
+    addSource(fileDb, '/a')
+    const b = addSource(fileDb, '/b')
+    removeSource(fileDb, b.id)
+    const c = addSource(fileDb, '/c')
+    expect(c.id).not.toBe(b.id)
+    expect(c.id).toBeGreaterThan(b.id)
+  })
+})
+
 describe('getPhoto / getIndexState / deleteByPaths', () => {
   it('round-trips a photo by id', () => {
     upsertPhoto(db, rec({}), src.id)

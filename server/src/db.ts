@@ -28,7 +28,7 @@ export function openDb(dbPath: string): Db {
     CREATE INDEX IF NOT EXISTS idx_photos_taken ON photos(taken_at);
     CREATE INDEX IF NOT EXISTS idx_photos_geo ON photos(lat, lon);
     CREATE TABLE IF NOT EXISTS sources (
-      id INTEGER PRIMARY KEY,
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
       path TEXT NOT NULL UNIQUE,
       enabled INTEGER NOT NULL DEFAULT 1
     );
@@ -41,6 +41,12 @@ export function openDb(dbPath: string): Db {
     db.exec(`ALTER TABLE photos ADD COLUMN source_id INTEGER NOT NULL DEFAULT 0`)
   }
   db.exec(`CREATE INDEX IF NOT EXISTS idx_photos_source ON photos(source_id)`)
+  // A source removed mid-scan can leave an orphan photo upsert behind (see the
+  // sweep guard in scanner.ts). Nothing ever selects those rows, so purge them
+  // here rather than let a later source inherit them via rowid reuse. Exclude
+  // source_id 0: those are pre-adoption legacy rows that adoptLegacyPhotoDir
+  // (called by the app after openDb returns) still needs to claim.
+  db.exec(`DELETE FROM photos WHERE source_id != 0 AND source_id NOT IN (SELECT id FROM sources)`)
   return db
 }
 

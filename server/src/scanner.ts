@@ -79,7 +79,8 @@ export async function scanFolder(
 
   // Guard against a source deleted while this scan was running: without it the
   // sweep below would be based on a stale state map. A rare orphan upsert is
-  // acceptable — orphans match no enabled source and vanish on the next scan.
+  // acceptable — orphans match no enabled source and are purged at next startup
+  // (see the orphan purge in openDb, db.ts).
   if (sourceExists(db, sourceId)) {
     const removedPaths = [...known.keys()].filter((p) => !seen.has(p))
     deleteByPaths(db, removedPaths)
