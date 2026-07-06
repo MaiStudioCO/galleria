@@ -126,8 +126,10 @@ export function MapView({ points, range, focus, onOpenGrid, onOpenPhoto }: MapVi
     }
   }, [])
 
+  // Init unconditionally: an emptied library (all sources disabled/removed)
+  // must rebuild to an empty index so stale markers disappear.
   useEffect(() => {
-    if (points.length > 0) clientRef.current?.init(points)
+    clientRef.current?.init(points)
   }, [points])
 
   // Each filter is a full recluster in the worker, so slider drags are

@@ -1,18 +1,20 @@
 import { useEffect, useState } from 'react'
-import { putConfig, startScan, type Config } from '../api'
+import { addSource, deleteSource, patchSource, startScan, type Source } from '../api'
 import { useScanEvents } from '../hooks/useScanEvents'
 
 export interface SettingsSheetProps {
-  config: Config
+  sources: Source[]
   onClose: () => void
-  onRescanned: () => void
+  onChanged: () => void
 }
 
-export function SettingsSheet({ config, onClose, onRescanned }: SettingsSheetProps) {
-  const [dir, setDir] = useState(config.photoDir ?? '')
+export function SettingsSheet({ sources, onClose, onChanged }: SettingsSheetProps) {
+  const [newPath, setNewPath] = useState('')
   const [status, setStatus] = useState<string | null>(null)
-  const { running, progress } = useScanEvents(onRescanned)
+  const [confirmRemove, setConfirmRemove] = useState<number | null>(null)
+  const { running, progress } = useScanEvents(onChanged)
   const [skipped, setSkipped] = useState<number>(0)
+
   useEffect(() => {
     void fetch('/api/scan/status')
       .then((r) => r.json())
@@ -20,10 +22,31 @@ export function SettingsSheet({ config, onClose, onRescanned }: SettingsSheetPro
       .catch(() => {})
   }, [running])
 
-  const save = async () => {
-    const res = await putConfig(dir.trim())
-    setStatus(res.ok ? 'Saved — rescanning…' : 'Not a valid folder')
+  const add = async () => {
+    setStatus(null)
+    const res = await addSource(newPath.trim())
+    if (!res.ok) {
+      const body = (await res.json().catch(() => null)) as { error?: string } | null
+      setStatus(body?.error ?? 'Could not add that folder')
+      return
+    }
+    setNewPath('')
+    setStatus('Folder added — scanning…')
+    onChanged()
   }
+
+  const toggle = async (s: Source) => {
+    await patchSource(s.id, !s.enabled)
+    onChanged()
+  }
+
+  const remove = async (id: number) => {
+    setConfirmRemove(null)
+    await deleteSource(id)
+    setStatus('Folder removed')
+    onChanged()
+  }
+
   const rescan = async () => {
     await startScan()
     setStatus('Rescanning…')
@@ -35,11 +58,48 @@ export function SettingsSheet({ config, onClose, onRescanned }: SettingsSheetPro
         <span>Settings</span>
         <button onClick={onClose}>✕</button>
       </header>
-      <label htmlFor="settings-folder">Photo folder</label>
-      <input id="settings-folder" value={dir} onChange={(e) => setDir(e.target.value)} />
+      <label>Photo folders</label>
+      <ul className="source-list" data-testid="source-list">
+        {sources.map((s) => (
+          <li key={s.id} className={s.enabled ? 'source-row' : 'source-row source-disabled'}>
+            <button
+              className="source-eye"
+              title={s.enabled ? 'Hide this folder' : 'Show this folder'}
+              onClick={() => void toggle(s)}
+            >
+              {s.enabled ? '●' : '○'}
+            </button>
+            <span className="source-path" title={s.path}>
+              {s.path.split('/').pop() || s.path}
+            </span>
+            {!s.exists && <span className="source-missing" title="Folder not reachable">!</span>}
+            <span className="source-count">{s.photoCount}</span>
+            {confirmRemove === s.id ? (
+              <button className="source-remove danger" onClick={() => void remove(s.id)}>
+                Remove?
+              </button>
+            ) : (
+              <button className="source-remove" title="Remove folder" onClick={() => setConfirmRemove(s.id)}>
+                ✕
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
       <div className="row">
-        <button onClick={() => void save()}>Save folder</button>
-        <button onClick={() => void rescan()}>Rescan</button>
+        <input
+          data-testid="add-source-input"
+          value={newPath}
+          placeholder="/Users/you/Pictures"
+          onChange={(e) => setNewPath(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && void add()}
+        />
+        <button data-testid="add-source-submit" onClick={() => void add()}>
+          Add
+        </button>
+      </div>
+      <div className="row">
+        <button onClick={() => void rescan()}>Rescan all</button>
       </div>
       {running && (
         <p>

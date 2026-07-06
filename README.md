@@ -12,8 +12,10 @@ generic basemap tile requests go to the internet.
     npm install
     npm start          # builds the frontend, starts http://127.0.0.1:3000, opens your browser
 
-On first launch, enter the path to your photo folder. The initial scan of a
-large library takes a few minutes; rescans are incremental and fast.
+On first launch, enter the path to your photo folder — you can add more
+folders later in settings (⚙), where each folder can also be hidden or
+removed independently. The initial scan of a large library takes a few
+minutes; rescans are incremental and fast.
 
 ## Develop
 

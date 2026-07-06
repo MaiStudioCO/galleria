@@ -2,10 +2,14 @@ import fastifyStatic from '@fastify/static'
 import Fastify, { type FastifyInstance } from 'fastify'
 import { createReadStream, existsSync, mkdirSync } from 'node:fs'
 import { stat } from 'node:fs/promises'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 import { loadConfig, saveConfig } from './config.js'
-import { getDateBounds, getPhoto, getPoints, getUnlocated, openDb } from './db.js'
+import {
+  addSource, adoptLegacyPhotoDir, getDateBounds, getPhoto, getPoints, getUnlocated,
+  listSources, openDb, removeSource, setSourceEnabled,
+} from './db.js'
 import { ScanManager } from './scan-manager.js'
+import { findNestingConflict } from './sources.js'
 import { getThumbPath, THUMB_SIZES } from './thumbs.js'
 
 export interface AppContext {
@@ -21,10 +25,68 @@ function parseId(raw: string): number | null {
 export async function buildApp(ctx: AppContext): Promise<FastifyInstance> {
   mkdirSync(ctx.dataDir, { recursive: true })
   const db = openDb(join(ctx.dataDir, 'index.db'))
+
+  // One-time adoption of the pre-multi-source config: photoDir becomes source 1.
+  const legacy = loadConfig(ctx.dataDir)
+  if (legacy.photoDir && listSources(db).length === 0) {
+    adoptLegacyPhotoDir(db, legacy.photoDir)
+    saveConfig(ctx.dataDir, { photoDir: null })
+  }
+
   const scanManager = new ScanManager()
   const app = Fastify()
 
   app.get('/health', async () => ({ ok: true }))
+
+  app.get('/api/sources', async () => {
+    const sources = listSources(db)
+    return Promise.all(
+      sources.map(async (s) => {
+        const st = await stat(s.path).catch(() => null)
+        return { ...s, exists: st?.isDirectory() ?? false }
+      }),
+    )
+  })
+
+  app.post('/api/sources', async (req, reply) => {
+    const body = req.body as { path?: unknown }
+    if (typeof body?.path !== 'string' || body.path.trim() === '') {
+      return reply.code(400).send({ error: 'path required' })
+    }
+    const path = resolve(body.path.trim())
+    const st = await stat(path).catch(() => null)
+    if (!st?.isDirectory()) return reply.code(400).send({ error: 'not a directory' })
+    const conflict = findNestingConflict(listSources(db).map((s) => s.path), path)
+    if (conflict) return reply.code(409).send({ error: `overlaps existing source ${conflict}` })
+    let source
+    try {
+      source = addSource(db, path)
+    } catch (err) {
+      const code = (err as { code?: string }).code
+      if (typeof code === 'string' && code.startsWith('SQLITE_CONSTRAINT')) {
+        return reply.code(409).send({ error: `overlaps existing source ${path}` })
+      }
+      throw err
+    }
+    void scanManager.start(db, source.id)
+    return reply.code(201).send({ ...source, exists: true })
+  })
+
+  app.patch('/api/sources/:id', async (req, reply) => {
+    const id = parseId((req.params as { id: string }).id)
+    const body = req.body as { enabled?: unknown }
+    if (typeof body?.enabled !== 'boolean') return reply.code(400).send({ error: 'enabled boolean required' })
+    if (id === null || !setSourceEnabled(db, id, body.enabled)) {
+      return reply.code(404).send({ error: 'not found' })
+    }
+    return { id, enabled: body.enabled }
+  })
+
+  app.delete('/api/sources/:id', async (req, reply) => {
+    const id = parseId((req.params as { id: string }).id)
+    if (id === null || !removeSource(db, id)) return reply.code(404).send({ error: 'not found' })
+    return { removed: true }
+  })
 
   app.get('/api/photos', async () => getPoints(db))
 
@@ -66,27 +128,12 @@ export async function buildApp(ctx: AppContext): Promise<FastifyInstance> {
     }
   })
 
-  app.get('/api/config', async () => {
-    const cfg = loadConfig(ctx.dataDir)
-    const st = cfg.photoDir ? await stat(cfg.photoDir).catch(() => null) : null
-    return { ...cfg, folderExists: st?.isDirectory() ?? false }
-  })
-
-  app.put('/api/config', async (req, reply) => {
-    const body = req.body as { photoDir?: unknown }
-    if (typeof body?.photoDir !== 'string') return reply.code(400).send({ error: 'photoDir required' })
-    const st = await stat(body.photoDir).catch(() => null)
-    if (!st?.isDirectory()) return reply.code(400).send({ error: 'not a directory' })
-    saveConfig(ctx.dataDir, { photoDir: body.photoDir })
-    void scanManager.start(db, body.photoDir)
-    return { photoDir: body.photoDir }
-  })
-
   app.post('/api/scan', async (_req, reply) => {
-    const { photoDir } = loadConfig(ctx.dataDir)
-    if (!photoDir) return reply.code(400).send({ error: 'no folder configured' })
+    if (listSources(db).filter((s) => s.enabled).length === 0) {
+      return reply.code(400).send({ error: 'no sources configured' })
+    }
     if (scanManager.running) return reply.code(409).send({ error: 'scan in progress' })
-    void scanManager.start(db, photoDir)
+    void scanManager.start(db)
     return reply.code(202).send({ started: true })
   })
 
