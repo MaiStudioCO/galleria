@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { fetchConfig, fetchLibrary, fetchPoints, type Config, type PhotoPoint } from './api'
+import { fetchLibrary, fetchPoints, fetchSources, type PhotoPoint, type Source } from './api'
 import { FirstRun } from './components/FirstRun'
 import { GridPanel } from './components/GridPanel'
 import { Lightbox } from './components/Lightbox'
@@ -10,65 +10,66 @@ import { UnlocatedTray } from './components/UnlocatedTray'
 import { histogram } from './lib/points'
 
 export default function App() {
-  const [config, setConfig] = useState<Config | undefined>(undefined)
+  const [sources, setSources] = useState<Source[] | undefined>(undefined)
   const [points, setPoints] = useState<PhotoPoint[]>([])
   const [span, setSpan] = useState<[number, number] | null>(null)
   const [range, setRange] = useState<[number, number] | null>(null)
   const [gridPhotos, setGridPhotos] = useState<{ id: number }[] | null>(null)
   const [lightbox, setLightbox] = useState<{ ids: number[]; index: number } | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const [configError, setConfigError] = useState(false)
+  const [loadError, setLoadError] = useState(false)
   const [focus, setFocus] = useState<{ lat: number; lon: number; seq: number } | null>(null)
 
   const loadLibrary = useCallback(async () => {
     const [pts, library] = await Promise.all([fetchPoints(), fetchLibrary()])
     setPoints(pts)
-    // Bounds cover the whole library (unlocated included), so an all-unlocated
-    // folder still gets a timeline and tray instead of a blank app.
+    // Bounds cover the whole enabled library (unlocated included), so an
+    // all-unlocated folder still gets a timeline and tray.
     setSpan(library.bounds)
     setRange(library.bounds)
   }, [])
 
-  const reloadConfig = useCallback(() => {
-    setConfigError(false)
-    void fetchConfig()
-      .then((c) => {
-        setConfig(c)
-        if (c.photoDir) void loadLibrary()
+  const reloadSources = useCallback(() => {
+    setLoadError(false)
+    void fetchSources()
+      .then((list) => {
+        setSources(list)
+        if (list.length > 0) void loadLibrary()
       })
-      .catch(() => setConfigError(true))
+      .catch(() => setLoadError(true))
   }, [loadLibrary])
 
   useEffect(() => {
-    reloadConfig()
-  }, [reloadConfig])
+    reloadSources()
+  }, [reloadSources])
 
-  if (configError) {
+  if (loadError) {
     return (
       <div className="first-run">
         <h1>yufu</h1>
         <p>Can't reach the local server. Is it still running?</p>
-        <button onClick={reloadConfig}>Retry</button>
+        <button onClick={reloadSources}>Retry</button>
       </div>
     )
   }
 
-  if (config === undefined) return null
+  if (sources === undefined) return null
 
-  if (!config.photoDir) {
-    return (
-      <FirstRun onConfigured={reloadConfig} />
-    )
+  if (sources.length === 0) {
+    return <FirstRun onConfigured={reloadSources} />
   }
 
+  const missing = sources.filter((s) => s.enabled && !s.exists)
   const bins = span ? histogram(points, span[0], span[1], 120) : []
 
   return (
     <>
-      {!config.folderExists && (
+      {missing.length > 0 && (
         <div className="banner">
-          Photo folder “{config.photoDir}” is not reachable — showing the cached index.
-          <button onClick={() => setSettingsOpen(true)}>Change folder</button>
+          Photo folder “{missing[0].path}”
+          {missing.length > 1 ? ` and ${missing.length - 1} more are` : ' is'} not reachable — showing
+          the cached index.
+          <button onClick={() => setSettingsOpen(true)}>Manage folders</button>
         </div>
       )}
       <MapView
@@ -105,13 +106,9 @@ export default function App() {
       </button>
       {settingsOpen && (
         <SettingsSheet
-          config={config}
+          sources={sources}
           onClose={() => setSettingsOpen(false)}
-          // Re-fetch config too so a fixed folder clears the missing-folder banner.
-          onRescanned={() => {
-            reloadConfig()
-            void loadLibrary()
-          }}
+          onChanged={reloadSources}
         />
       )}
     </>

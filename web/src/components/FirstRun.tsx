@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { putConfig } from '../api'
+import { addSource } from '../api'
 import { useScanEvents } from '../hooks/useScanEvents'
 
 export function FirstRun({ onConfigured }: { onConfigured: () => void }) {
@@ -10,7 +10,7 @@ export function FirstRun({ onConfigured }: { onConfigured: () => void }) {
 
   const submit = async () => {
     setError(null)
-    const res = await putConfig(dir.trim())
+    const res = await addSource(dir.trim())
     if (!res.ok) {
       const body = (await res.json().catch(() => null)) as { error?: string } | null
       setError(body?.error ?? 'That folder could not be opened')
@@ -24,7 +24,7 @@ export function FirstRun({ onConfigured }: { onConfigured: () => void }) {
       <h1>yufu</h1>
       {!scanning ? (
         <>
-          <p>Point me at your photo folder to build the map.</p>
+          <p>Point me at your photo folder to build the map. You can add more folders later.</p>
           <input
             data-testid="folder-input"
             value={dir}
