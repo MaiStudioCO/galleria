@@ -37,6 +37,9 @@ export function MapView({ points, range, focus, onOpenGrid, onOpenPhoto }: MapVi
     })
     mapRef.current = map
     map.on('error', () => setTileError(true))
+    map.on('sourcedata', (e) => {
+      if (e.isSourceLoaded) setTileError(false)
+    })
     const client = createClusterClient()
     clientRef.current = client
     const markers = new Map<string, maplibregl.Marker>()
