@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { fetchConfig, fetchPoints, type Config, type PhotoPoint } from './api'
 import { GridPanel } from './components/GridPanel'
 import { MapView } from './components/MapView'
-import { dateSpan } from './lib/points'
+import { TimelineBar } from './components/TimelineBar'
+import { dateSpan, histogram } from './lib/points'
 
 export default function App() {
   const [config, setConfig] = useState<Config | undefined>(undefined)
@@ -29,6 +30,8 @@ export default function App() {
 
   if (config === undefined) return null
 
+  const bins = span ? histogram(points, span[0], span[1], 120) : []
+
   return (
     <>
       <MapView
@@ -37,6 +40,7 @@ export default function App() {
         onOpenGrid={(photos) => setGridPhotos(photos)}
         onOpenPhoto={(id) => setLightbox({ ids: [id], index: 0 })}
       />
+      {span && range && <TimelineBar span={span} range={range} bins={bins} onChange={setRange} />}
       {gridPhotos && (
         <GridPanel
           photos={gridPhotos}
@@ -44,7 +48,6 @@ export default function App() {
           onPhoto={(i) => setLightbox({ ids: gridPhotos.map((p) => p.id), index: i })}
         />
       )}
-      {/* Lightbox mounts in Task 14; log for now so clicks are observable */}
       {lightbox && <div style={{ display: 'none' }} data-testid="lightbox-placeholder" />}
     </>
   )
