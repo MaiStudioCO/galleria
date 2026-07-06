@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import { fetchConfig, fetchPoints, type Config, type PhotoPoint } from './api'
+import { FirstRun } from './components/FirstRun'
 import { GridPanel } from './components/GridPanel'
 import { Lightbox } from './components/Lightbox'
 import { MapView } from './components/MapView'
+import { SettingsSheet } from './components/SettingsSheet'
 import { TimelineBar } from './components/TimelineBar'
 import { UnlocatedTray } from './components/UnlocatedTray'
 import { dateSpan, histogram } from './lib/points'
@@ -14,6 +16,7 @@ export default function App() {
   const [range, setRange] = useState<[number, number] | null>(null)
   const [gridPhotos, setGridPhotos] = useState<{ id: number }[] | null>(null)
   const [lightbox, setLightbox] = useState<{ ids: number[]; index: number } | null>(null)
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   const loadLibrary = useCallback(async () => {
     const pts = await fetchPoints()
@@ -31,6 +34,19 @@ export default function App() {
   }, [loadLibrary])
 
   if (config === undefined) return null
+
+  if (!config.photoDir) {
+    return (
+      <FirstRun
+        onConfigured={() => {
+          void fetchConfig().then((c) => {
+            setConfig(c)
+            void loadLibrary()
+          })
+        }}
+      />
+    )
+  }
 
   const bins = span ? histogram(points, span[0], span[1], 120) : []
 
@@ -58,6 +74,12 @@ export default function App() {
           onClose={() => setLightbox(null)}
           onIndex={(i) => setLightbox({ ...lightbox, index: i })}
         />
+      )}
+      <button className="settings-button" title="Settings" onClick={() => setSettingsOpen(true)}>
+        ⚙︎
+      </button>
+      {settingsOpen && (
+        <SettingsSheet config={config} onClose={() => setSettingsOpen(false)} onRescanned={loadLibrary} />
       )}
     </>
   )
