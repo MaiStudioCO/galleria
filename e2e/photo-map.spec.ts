@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { mkdtempSync } from 'node:fs'
+import { mkdirSync, mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 // Extensionless import: this file is transpiled by Playwright's esbuild, not the
@@ -20,8 +20,8 @@ test.beforeAll(async ({ request }) => {
   for (let i = 0; i < 5; i++)
     await makeJpeg(join(photoDir, `nogps${i}.jpg`), { takenAt: `2024:01:0${i + 1} 10:00:00` })
 
-  const res = await request.put('/api/config', { data: { photoDir } })
-  expect(res.ok()).toBeTruthy()
+  const res = await request.post('/api/sources', { data: { path: photoDir } })
+  expect(res.status()).toBe(201)
   await expect
     .poll(async () => {
       const status = await (await request.get('/api/scan/status')).json()
@@ -58,4 +58,38 @@ test('tray photos open in the lightbox', async ({ page }) => {
   await expect(page.getByTestId('lightbox')).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(page.getByTestId('lightbox')).toHaveCount(0)
+})
+
+test('sources can be added, hidden, and removed', async ({ page, request }) => {
+  const tokyoDir = mkdtempSync(join(tmpdir(), 'yufu-e2e-tokyo-'))
+  for (let i = 0; i < 2; i++)
+    await makeJpeg(join(tokyoDir, `tokyo${i}.jpg`), {
+      lat: 35.68 + i * 0.001, lon: 139.76 + i * 0.001, takenAt: `2025:03:0${i + 1} 10:00:00`,
+    })
+
+  const created = await request.post('/api/sources', { data: { path: tokyoDir } })
+  expect(created.status()).toBe(201)
+  const { id } = await created.json()
+  await expect
+    .poll(async () => !(await (await request.get('/api/scan/status')).json()).running, { timeout: 30_000 })
+    .toBe(true)
+
+  // Nested folders are rejected (create the subfolder so the check reaches
+  // the nesting rule rather than the not-a-directory 400).
+  mkdirSync(join(tokyoDir, 'sub'))
+  const nested = await request.post('/api/sources', { data: { path: join(tokyoDir, 'sub') } })
+  expect(nested.status()).toBe(409)
+
+  await page.goto('/')
+  await expect(page.locator('.photo-marker')).toHaveCount(3, { timeout: 15_000 }) // Istanbul + NYC + Tokyo
+
+  const hidden = await request.patch(`/api/sources/${id}`, { data: { enabled: false } })
+  expect(hidden.ok()).toBeTruthy()
+  await page.goto('/')
+  await expect(page.locator('.photo-marker')).toHaveCount(2, { timeout: 15_000 })
+
+  const removed = await request.delete(`/api/sources/${id}`)
+  expect(removed.ok()).toBeTruthy()
+  await page.goto('/')
+  await expect(page.locator('.photo-marker')).toHaveCount(2, { timeout: 15_000 })
 })
