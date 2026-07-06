@@ -1,5 +1,6 @@
 export interface Config {
   photoDir: string | null
+  folderExists: boolean
 }
 export interface PhotoPoint {
   id: number

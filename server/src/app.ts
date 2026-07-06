@@ -64,7 +64,11 @@ export async function buildApp(ctx: AppContext): Promise<FastifyInstance> {
     }
   })
 
-  app.get('/api/config', async () => loadConfig(ctx.dataDir))
+  app.get('/api/config', async () => {
+    const cfg = loadConfig(ctx.dataDir)
+    const st = cfg.photoDir ? await stat(cfg.photoDir).catch(() => null) : null
+    return { ...cfg, folderExists: st?.isDirectory() ?? false }
+  })
 
   app.put('/api/config', async (req, reply) => {
     const body = req.body as { photoDir?: unknown }

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { putConfig, startScan, type Config } from '../api'
 import { useScanEvents } from '../hooks/useScanEvents'
 
@@ -12,6 +12,13 @@ export function SettingsSheet({ config, onClose, onRescanned }: SettingsSheetPro
   const [dir, setDir] = useState(config.photoDir ?? '')
   const [status, setStatus] = useState<string | null>(null)
   const { running, progress } = useScanEvents(onRescanned)
+  const [skipped, setSkipped] = useState<number>(0)
+  useEffect(() => {
+    void fetch('/api/scan/status')
+      .then((r) => r.json())
+      .then((s) => setSkipped(s.lastResult?.skippedUnreadable ?? 0))
+      .catch(() => {})
+  }, [running])
 
   const save = async () => {
     const res = await putConfig(dir.trim())
@@ -40,6 +47,7 @@ export function SettingsSheet({ config, onClose, onRescanned }: SettingsSheetPro
         </p>
       )}
       {status && <p>{status}</p>}
+      {skipped > 0 && <p>{skipped} unreadable file{skipped === 1 ? '' : 's'} skipped in the last scan</p>}
     </div>
   )
 }

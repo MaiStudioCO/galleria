@@ -1,6 +1,6 @@
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { PhotoPoint } from '../api'
 import { createClusterClient, type ClusterFeature } from '../cluster-client'
 
@@ -11,15 +11,18 @@ const MAX_CLUSTER_ZOOM = 16
 export interface MapViewProps {
   points: PhotoPoint[]
   range: [number, number] | null
+  focus?: { lat: number; lon: number; seq: number } | null
   onOpenGrid: (photos: { id: number; takenAt: number }[]) => void
   onOpenPhoto: (id: number) => void
 }
 
 type ClusterClient = ReturnType<typeof createClusterClient>
 
-export function MapView({ points, range, onOpenGrid, onOpenPhoto }: MapViewProps) {
+export function MapView({ points, range, focus, onOpenGrid, onOpenPhoto }: MapViewProps) {
   const el = useRef<HTMLDivElement>(null)
   const clientRef = useRef<ClusterClient | null>(null)
+  const mapRef = useRef<maplibregl.Map | null>(null)
+  const [tileError, setTileError] = useState(false)
   const callbacks = useRef({ onOpenGrid, onOpenPhoto })
   callbacks.current = { onOpenGrid, onOpenPhoto }
 
@@ -32,6 +35,8 @@ export function MapView({ points, range, onOpenGrid, onOpenPhoto }: MapViewProps
       zoom: 1.5,
       maxZoom: 18,
     })
+    mapRef.current = map
+    map.on('error', () => setTileError(true))
     const client = createClusterClient()
     clientRef.current = client
     const markers = new Map<string, maplibregl.Marker>()
@@ -114,6 +119,7 @@ export function MapView({ points, range, onOpenGrid, onOpenPhoto }: MapViewProps
       clientRef.current = null
       clearMarkers()
       map.remove()
+      mapRef.current = null
     }
   }, [])
 
@@ -125,5 +131,16 @@ export function MapView({ points, range, onOpenGrid, onOpenPhoto }: MapViewProps
     if (range) clientRef.current?.filter(range[0], range[1])
   }, [range])
 
-  return <div ref={el} className="map" />
+  useEffect(() => {
+    if (focus) mapRef.current?.easeTo({ center: [focus.lon, focus.lat], zoom: 15 })
+  }, [focus?.seq])
+
+  return (
+    <>
+      <div ref={el} className="map" />
+      {tileError && (
+        <div className="map-notice">Map tiles unavailable — photos are still shown.</div>
+      )}
+    </>
+  )
 }

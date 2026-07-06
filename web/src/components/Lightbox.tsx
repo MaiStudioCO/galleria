@@ -6,9 +6,10 @@ export interface LightboxProps {
   index: number
   onClose: () => void
   onIndex: (index: number) => void
+  onShowOnMap?: (lat: number, lon: number) => void
 }
 
-export function Lightbox({ ids, index, onClose, onIndex }: LightboxProps) {
+export function Lightbox({ ids, index, onClose, onIndex, onShowOnMap }: LightboxProps) {
   const [detail, setDetail] = useState<PhotoDetail | null>(null)
   const id = ids[index]
 
@@ -41,6 +42,11 @@ export function Lightbox({ ids, index, onClose, onIndex }: LightboxProps) {
           <span>
             {detail.width}×{detail.height}
           </span>
+          {detail.lat !== null && detail.lon !== null && onShowOnMap && (
+            <button className="show-on-map" onClick={() => onShowOnMap(detail.lat!, detail.lon!)}>
+              Show on map
+            </button>
+          )}
         </footer>
       )}
       {index > 0 && (

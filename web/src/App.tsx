@@ -18,6 +18,7 @@ export default function App() {
   const [lightbox, setLightbox] = useState<{ ids: number[]; index: number } | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [configError, setConfigError] = useState(false)
+  const [focus, setFocus] = useState<{ lat: number; lon: number; seq: number } | null>(null)
 
   const loadLibrary = useCallback(async () => {
     const pts = await fetchPoints()
@@ -81,9 +82,16 @@ export default function App() {
 
   return (
     <>
+      {!config.folderExists && (
+        <div className="banner">
+          Photo folder “{config.photoDir}” is not reachable — showing the cached index.
+          <button onClick={() => setSettingsOpen(true)}>Change folder</button>
+        </div>
+      )}
       <MapView
         points={points}
         range={range}
+        focus={focus}
         onOpenGrid={(photos) => setGridPhotos(photos)}
         onOpenPhoto={(id) => setLightbox({ ids: [id], index: 0 })}
       />
@@ -102,6 +110,11 @@ export default function App() {
           index={lightbox.index}
           onClose={() => setLightbox(null)}
           onIndex={(i) => setLightbox({ ...lightbox, index: i })}
+          onShowOnMap={(lat, lon) => {
+            setFocus((f) => ({ lat, lon, seq: (f?.seq ?? 0) + 1 }))
+            setLightbox(null)
+            setGridPhotos(null)
+          }}
         />
       )}
       <button className="settings-button" title="Settings" onClick={() => setSettingsOpen(true)}>

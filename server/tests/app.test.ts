@@ -40,7 +40,7 @@ it('PUT /api/config saves folder and triggers a scan', async () => {
   const result = await waitForScan(app)
   expect(result.added).toBe(3)
   const cfg = await app.inject({ method: 'GET', url: '/api/config' })
-  expect(cfg.json()).toEqual({ photoDir })
+  expect(cfg.json()).toEqual({ photoDir, folderExists: true })
 })
 
 it('GET /api/photos returns geolocated points', async () => {
@@ -103,4 +103,20 @@ it('GET /api/photos/:id returns 404 for non-numeric id', async () => {
 it('GET /thumb/:id returns 404 for non-numeric id', async () => {
   const res = await app.inject({ method: 'GET', url: '/thumb/abc?size=96' })
   expect(res.statusCode).toBe(404)
+})
+
+it('GET /api/config reports whether the folder still exists', async () => {
+  const ok = await app.inject({ method: 'GET', url: '/api/config' })
+  expect(ok.json()).toEqual({ photoDir, folderExists: true })
+
+  const orphanData = mkdtempSync(join(tmpdir(), 'yufu-api-orphan-'))
+  const orphanApp = await buildApp({ dataDir: orphanData })
+  const gone = join(orphanData, 'gone')
+  // Save a config pointing at a directory that exists, then remove it.
+  const { mkdirSync, rmSync } = await import('node:fs')
+  mkdirSync(gone)
+  await orphanApp.inject({ method: 'PUT', url: '/api/config', payload: { photoDir: gone } })
+  rmSync(gone, { recursive: true })
+  const res = await orphanApp.inject({ method: 'GET', url: '/api/config' })
+  expect(res.json()).toEqual({ photoDir: gone, folderExists: false })
 })
