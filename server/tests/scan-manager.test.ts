@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { expect, it } from 'vitest'
-import { addSource, getPoints, getUnlocated, openDb } from '../src/db.js'
+import { addSource, getPoints, getUnlocated, openDb, setSourceEnabled } from '../src/db.js'
 import { ScanManager, type ScanAllResult } from '../src/scan-manager.js'
 import { makeJpeg } from './helpers/fixtures.js'
 
@@ -42,20 +42,34 @@ it('skips disabled sources and honors onlySourceId', async () => {
   const root = makeRoot()
   const folderA = join(root, 'a')
   const folderB = join(root, 'b')
+  const folderC = join(root, 'c')
   mkdirSync(folderA)
   mkdirSync(folderB)
+  mkdirSync(folderC)
   await makeJpeg(join(folderA, 'a1.jpg'), { lat: 41, lon: 29, takenAt: '2023:01:01 10:00:00' })
   await makeJpeg(join(folderB, 'b1.jpg'), { lat: 40.7, lon: -74, takenAt: '2024:01:01 10:00:00' })
+  await makeJpeg(join(folderC, 'c1.jpg'), { lat: 51.5, lon: -0.1, takenAt: '2024:02:01 10:00:00' })
 
   const db = openDb(':memory:')
-  addSource(db, folderA)
+  const a = addSource(db, folderA)
   const b = addSource(db, folderB)
+  const c = addSource(db, folderC)
+  setSourceEnabled(db, c.id, false)
   const mgr = new ScanManager()
 
+  // scan-all must skip the disabled source entirely.
+  await mgr.start(db)
+  const allResult = mgr.lastResult as ScanAllResult
+  expect(allResult.perSource.map((s) => s.sourceId)).not.toContain(c.id)
+  expect(allResult.perSource.map((s) => s.sourceId).sort()).toEqual([a.id, b.id].sort())
+  expect(getPoints(db)).toHaveLength(2)
+
+  // onlySourceId restricts the scan to exactly that source; no new points appear
+  // since folderB was already scanned above.
   await mgr.start(db, b.id)
   expect((mgr.lastResult as ScanAllResult).perSource).toHaveLength(1)
   expect((mgr.lastResult as ScanAllResult).perSource[0].sourceId).toBe(b.id)
-  expect(getPoints(db)).toHaveLength(1)
+  expect(getPoints(db)).toHaveLength(2)
 })
 
 it('an unreachable source is reported per-source and does not abort the others', async () => {
