@@ -1,5 +1,5 @@
 {
-  "name": "@yufu/server",
+  "name": "@galleria/server",
   "private": true,
   "type": "module",
   "scripts": { "test": "vitest run", "typecheck": "tsc --noEmit" },

@@ -13,7 +13,7 @@ let sourceId: number
 
 beforeEach(async () => {
   db = openDb(':memory:')
-  dir = mkdtempSync(join(tmpdir(), 'yufu-scan-'))
+  dir = mkdtempSync(join(tmpdir(), 'galleria-scan-'))
   sourceId = addSource(db, dir).id
   mkdirSync(join(dir, 'sub'))
   await makeJpeg(join(dir, 'a.jpg'), { lat: 41, lon: 29, takenAt: '2023:05:01 10:00:00' })
@@ -75,7 +75,7 @@ it('accepts a precomputed file list', async () => {
 })
 
 it('deletion sweep only touches its own source', async () => {
-  const otherDir = mkdtempSync(join(tmpdir(), 'yufu-scan-other-'))
+  const otherDir = mkdtempSync(join(tmpdir(), 'galleria-scan-other-'))
   await makeJpeg(join(otherDir, 'o.jpg'), { lat: 1, lon: 1, takenAt: '2022:01:01 10:00:00' })
   const otherId = addSource(db, otherDir).id
   await scanFolder(db, sourceId, dir)

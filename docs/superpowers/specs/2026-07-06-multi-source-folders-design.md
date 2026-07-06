@@ -6,7 +6,7 @@
 
 ## Summary
 
-Replace yufu's single configured `photoDir` with multiple **source folders** that can be added, removed, and shown/hidden individually. The library stays merged: one map, one timeline, one tray — with per-source visibility toggles in settings.
+Replace galleria's single configured `photoDir` with multiple **source folders** that can be added, removed, and shown/hidden individually. The library stays merged: one map, one timeline, one tray — with per-source visibility toggles in settings.
 
 ## Decisions
 

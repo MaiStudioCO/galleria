@@ -22,11 +22,11 @@ async function waitForScan(a: FastifyInstance) {
 }
 
 beforeAll(async () => {
-  photoDir = mkdtempSync(join(tmpdir(), 'yufu-api-photos-'))
+  photoDir = mkdtempSync(join(tmpdir(), 'galleria-api-photos-'))
   await makeJpeg(join(photoDir, 'geo.jpg'), { lat: 41, lon: 29, takenAt: '2023:05:01 10:00:00' })
   await makeJpeg(join(photoDir, 'geo2.jpg'), { lat: 48.8, lon: 2.3, takenAt: '2024:07:01 10:00:00' })
   await makeJpeg(join(photoDir, 'nogps.jpg'), { takenAt: '2024:01:01 10:00:00' })
-  app = await buildApp({ dataDir: mkdtempSync(join(tmpdir(), 'yufu-api-data-')) })
+  app = await buildApp({ dataDir: mkdtempSync(join(tmpdir(), 'galleria-api-data-')) })
 })
 
 it('starts with no sources', async () => {
@@ -130,7 +130,7 @@ it('config routes are gone', async () => {
 })
 
 it('GET /api/sources reports exists=false for a vanished folder', async () => {
-  const data = mkdtempSync(join(tmpdir(), 'yufu-api-orphan-'))
+  const data = mkdtempSync(join(tmpdir(), 'galleria-api-orphan-'))
   const gone = join(data, 'gone')
   mkdirSync(gone)
   const a = await buildApp({ dataDir: data })
@@ -141,8 +141,8 @@ it('GET /api/sources reports exists=false for a vanished folder', async () => {
 })
 
 it('adopts a legacy config.photoDir into a source at startup and clears it', async () => {
-  const data = mkdtempSync(join(tmpdir(), 'yufu-api-legacy-'))
-  const legacyDir = mkdtempSync(join(tmpdir(), 'yufu-api-legacy-photos-'))
+  const data = mkdtempSync(join(tmpdir(), 'galleria-api-legacy-'))
+  const legacyDir = mkdtempSync(join(tmpdir(), 'galleria-api-legacy-photos-'))
   saveConfig(data, { photoDir: legacyDir })
   const a = await buildApp({ dataDir: data })
   const sources = (await a.inject({ method: 'GET', url: '/api/sources' })).json()
@@ -184,10 +184,10 @@ it('GET /api/photos/:id and /thumb/:id return 404 for non-numeric ids', async ()
 })
 
 it('GET /api/library returns date bounds spanning unlocated photos', async () => {
-  const isolatedPhotoDir = mkdtempSync(join(tmpdir(), 'yufu-api-bounds-photos-'))
+  const isolatedPhotoDir = mkdtempSync(join(tmpdir(), 'galleria-api-bounds-photos-'))
   await makeJpeg(join(isolatedPhotoDir, 'geo.jpg'), { lat: 41, lon: 29, takenAt: '2024:06:01 10:00:00' })
   await makeJpeg(join(isolatedPhotoDir, 'nogps.jpg'), { takenAt: '2020:01:01 10:00:00' })
-  const isolatedApp = await buildApp({ dataDir: mkdtempSync(join(tmpdir(), 'yufu-api-bounds-data-')) })
+  const isolatedApp = await buildApp({ dataDir: mkdtempSync(join(tmpdir(), 'galleria-api-bounds-data-')) })
   await isolatedApp.inject({ method: 'POST', url: '/api/sources', payload: { path: isolatedPhotoDir } })
   await waitForScan(isolatedApp)
   const { bounds } = (await isolatedApp.inject({ method: 'GET', url: '/api/library' })).json()

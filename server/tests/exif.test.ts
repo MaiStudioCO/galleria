@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest'
 import { extractPhotoRecord, isValidGps } from '../src/exif.js'
 import { makeJpeg } from './helpers/fixtures.js'
 
-const dir = mkdtempSync(join(tmpdir(), 'yufu-exif-'))
+const dir = mkdtempSync(join(tmpdir(), 'galleria-exif-'))
 
 describe('isValidGps', () => {
   it('accepts normal coordinates', () => expect(isValidGps(41.0, 28.9)).toBe(true))

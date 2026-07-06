@@ -1,10 +1,11 @@
 {
-  "name": "yufu-local",
+  "name": "galleria",
   "private": true,
   "type": "module",
   "workspaces": ["server", "web"],
   "scripts": {
     "start": "npm run build -w web && tsx server/src/index.ts",
+    "update": "git pull && npm install",
     "dev": "concurrently \"tsx watch server/src/index.ts\" \"npm run dev -w web\"",
     "test": "npm run test --workspaces --if-present",
     "e2e": "playwright test"

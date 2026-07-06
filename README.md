@@ -1,27 +1,53 @@
-# yufu — your photos on a world map
+# galleria — your photos on a world map
 
-A local webapp that reads the EXIF metadata of a photo folder (JPEG/PNG) and
-shows the photos as clustered thumbnails on a world map, filtered by a
-date-range slider — like the iPhone Photos map, for any folder.
+A local webapp that reads the location and date (EXIF metadata) of your photos
+and shows them as clustered thumbnails on a world map — like the iPhone Photos
+map, for any folders you choose. Add several folders, hide or remove them
+individually, and filter everything by a date-range slider.
 
-Everything stays on your machine: photos are indexed into `~/.yufu` and only
-generic basemap tile requests go to the internet.
+Everything stays on your machine: your photos are indexed into a local folder
+(`~/.galleria`) and never uploaded. The only thing fetched from the internet is
+the generic map background.
 
-## Run
+## Install (one time)
 
+You need two free tools first:
+
+- **Node.js** version 20.19 or newer — https://nodejs.org (the "LTS" download)
+- **git** — https://git-scm.com/downloads
+
+Then, in a terminal:
+
+    git clone https://github.com/MaiStudioCO/galleria.git
+    cd galleria
     npm install
-    npm start          # builds the frontend, starts http://127.0.0.1:3000, opens your browser
+    npm start
 
-On first launch, enter the path to your photo folder — you can add more
-folders later in settings (⚙), where each folder can also be hidden or
-removed independently. The initial scan of a large library takes a few
-minutes; rescans are incremental and fast.
+`npm start` builds the app, starts it at http://127.0.0.1:3000, and opens your
+browser. On first launch, paste the path to a photo folder (e.g.
+`/Users/you/Pictures`). Add more folders anytime from the settings gear (⚙),
+where each folder can also be hidden or removed. The first scan of a large
+library takes a few minutes; after that it's instant.
+
+To run it again later, just `cd galleria` and `npm start`.
+
+## Update (whenever there's a new version)
+
+From the `galleria` folder:
+
+    npm run update
+    npm start
+
+`npm run update` pulls the latest code and installs anything new. Your photos,
+folder list, and index live in `~/.galleria`, completely separate from the app —
+updates never touch them, and any database changes are applied automatically the
+next time you start.
 
 ## Develop
 
-    npm run dev        # tsx watch server (:3000) + Vite dev server (:5173)
+    npm run dev        # server (:3000) + Vite dev server (:5173), both auto-reload
     npm test           # unit tests (server + web)
     npm run e2e        # Playwright end-to-end tests
 
-Env vars: `YUFU_DATA_DIR` (default `~/.yufu`), `PORT` (default 3000),
-`YUFU_NO_OPEN=1` to skip opening the browser.
+Env vars: `GALLERIA_DATA_DIR` (default `~/.galleria`), `PORT` (default 3000),
+`GALLERIA_NO_OPEN=1` to skip opening the browser.

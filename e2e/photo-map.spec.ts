@@ -8,7 +8,7 @@ import { makeJpeg } from '../server/tests/helpers/fixtures'
 
 // Istanbul and New York are ~100° of longitude apart — two distinct clusters at world zoom.
 test.beforeAll(async ({ request }) => {
-  const photoDir = mkdtempSync(join(tmpdir(), 'yufu-e2e-photos-'))
+  const photoDir = mkdtempSync(join(tmpdir(), 'galleria-e2e-photos-'))
   for (let i = 0; i < 3; i++)
     await makeJpeg(join(photoDir, `ist${i}.jpg`), {
       lat: 41.01 + i * 0.001, lon: 28.98 + i * 0.001, takenAt: `2023:05:0${i + 1} 10:00:00`,
@@ -61,7 +61,7 @@ test('tray photos open in the lightbox', async ({ page }) => {
 })
 
 test('sources can be added, hidden, and removed', async ({ page, request }) => {
-  const tokyoDir = mkdtempSync(join(tmpdir(), 'yufu-e2e-tokyo-'))
+  const tokyoDir = mkdtempSync(join(tmpdir(), 'galleria-e2e-tokyo-'))
   for (let i = 0; i < 2; i++)
     await makeJpeg(join(tokyoDir, `tokyo${i}.jpg`), {
       lat: 35.68 + i * 0.001, lon: 139.76 + i * 0.001, takenAt: `2025:03:0${i + 1} 10:00:00`,

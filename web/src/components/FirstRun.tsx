@@ -21,7 +21,7 @@ export function FirstRun({ onConfigured }: { onConfigured: () => void }) {
 
   return (
     <div className="first-run">
-      <h1>yufu</h1>
+      <h1>galleria</h1>
       {!scanning ? (
         <>
           <p>Point me at your photo folder to build the map. You can add more folders later.</p>

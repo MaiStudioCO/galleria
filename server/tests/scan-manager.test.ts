@@ -7,7 +7,7 @@ import { ScanManager, type ScanAllResult } from '../src/scan-manager.js'
 import { makeJpeg } from './helpers/fixtures.js'
 
 function makeRoot() {
-  return mkdtempSync(join(tmpdir(), 'yufu-scanmgr-'))
+  return mkdtempSync(join(tmpdir(), 'galleria-scanmgr-'))
 }
 
 it('scans all enabled sources with globally aggregated progress', async () => {

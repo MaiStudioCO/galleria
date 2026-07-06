@@ -6,7 +6,7 @@ import { expect, it } from 'vitest'
 import { getThumbPath, THUMB_SIZES } from '../src/thumbs.js'
 import { makeJpeg } from './helpers/fixtures.js'
 
-const dir = mkdtempSync(join(tmpdir(), 'yufu-thumb-'))
+const dir = mkdtempSync(join(tmpdir(), 'galleria-thumb-'))
 const cache = join(dir, 'cache')
 
 it('exposes the allowed sizes', () => {

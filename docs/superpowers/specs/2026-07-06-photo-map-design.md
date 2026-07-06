@@ -29,7 +29,7 @@ Node: Fastify
    ├─ Scanner: exifr → SQLite (better-sqlite3)
    ├─ Thumbnailer: sharp, lazy generation + disk cache
    └─ Photo / config / scan API
-Photo folder: read-only. App data in ~/.yufu/ (db, thumbs, config).
+Photo folder: read-only. App data in ~/.galleria/ (db, thumbs, config).
 ```
 
 ## Backend components
@@ -48,7 +48,7 @@ Single table:
 Indexes on `taken_at` and `(lat, lon)`. 50k rows: date+geo queries return in milliseconds.
 
 ### Thumbnailer
-- `GET /thumb/:id?size={96|256|2048}` — generated on first request with `sharp`, cached in `~/.yufu/thumbs/`, served from cache afterwards.
+- `GET /thumb/:id?size={96|256|2048}` — generated on first request with `sharp`, cached in `~/.galleria/thumbs/`, served from cache afterwards.
 - 96 = map markers, 256 = grid cells, 2048 = lightbox; original file also downloadable.
 
 ### API

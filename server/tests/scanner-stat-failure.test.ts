@@ -26,7 +26,7 @@ let sourceId: number
 
 beforeEach(async () => {
   db = openDb(':memory:')
-  dir = mkdtempSync(join(tmpdir(), 'yufu-scan-stat-'))
+  dir = mkdtempSync(join(tmpdir(), 'galleria-scan-stat-'))
   sourceId = addSource(db, dir).id
   await makeJpeg(join(dir, 'a.jpg'), { lat: 41, lon: 29, takenAt: '2023:05:01 10:00:00' })
   await makeJpeg(join(dir, 'b.jpg'), { lat: 48.8, lon: 2.3, takenAt: '2024:07:01 10:00:00' })

@@ -119,7 +119,7 @@ describe('sources', () => {
 
 describe('legacy migration', () => {
   it('adds source_id to an old-schema database; adoptLegacyPhotoDir backfills', () => {
-    const file = join(mkdtempSync(join(tmpdir(), 'yufu-db-mig-')), 'index.db')
+    const file = join(mkdtempSync(join(tmpdir(), 'galleria-db-mig-')), 'index.db')
     const legacy = new Database(file)
     legacy.exec(`
       CREATE TABLE photos (
@@ -141,7 +141,7 @@ describe('legacy migration', () => {
     expect(getPoints(migrated)).toHaveLength(1)
   })
   it('openDb is idempotent on an already-migrated database', () => {
-    const file = join(mkdtempSync(join(tmpdir(), 'yufu-db-mig2-')), 'index.db')
+    const file = join(mkdtempSync(join(tmpdir(), 'galleria-db-mig2-')), 'index.db')
     openDb(file).close()
     expect(listSources(openDb(file))).toHaveLength(0)
   })
@@ -149,7 +149,7 @@ describe('legacy migration', () => {
 
 describe('orphan photo purge', () => {
   it('purges rows whose source_id no longer matches any source, on reopen, but keeps legitimate rows', () => {
-    const file = join(mkdtempSync(join(tmpdir(), 'yufu-db-orphan-')), 'index.db')
+    const file = join(mkdtempSync(join(tmpdir(), 'galleria-db-orphan-')), 'index.db')
     const first = openDb(file)
     const legit = addSource(first, '/p')
     upsertPhoto(first, rec({ path: '/p/a.jpg' }), legit.id)
@@ -166,7 +166,7 @@ describe('orphan photo purge', () => {
   })
 
   it('does not delete pre-adoption legacy rows at source_id 0', () => {
-    const file = join(mkdtempSync(join(tmpdir(), 'yufu-db-orphan-legacy-')), 'index.db')
+    const file = join(mkdtempSync(join(tmpdir(), 'galleria-db-orphan-legacy-')), 'index.db')
     const legacy = new Database(file)
     legacy.exec(`
       CREATE TABLE photos (
@@ -204,7 +204,7 @@ describe('addSource duplicate path', () => {
 
 describe('source id reuse', () => {
   it('does not reuse a removed source id (AUTOINCREMENT)', () => {
-    const file = join(mkdtempSync(join(tmpdir(), 'yufu-db-noreuse-')), 'index.db')
+    const file = join(mkdtempSync(join(tmpdir(), 'galleria-db-noreuse-')), 'index.db')
     const fileDb = openDb(file)
     addSource(fileDb, '/a')
     const b = addSource(fileDb, '/b')

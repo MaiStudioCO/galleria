@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Replace yufu's single configured `photoDir` with multiple source folders that can be added, removed, and shown/hidden individually, keeping one merged map/timeline/tray.
+**Goal:** Replace galleria's single configured `photoDir` with multiple source folders that can be added, removed, and shown/hidden individually, keeping one merged map/timeline/tray.
 
 **Architecture:** A `sources` table in SQLite plus a `source_id` column on `photos` (idempotent startup migration adopts the legacy `config.photoDir` with a full backfill — no rescan). Sources get CRUD routes; all photo queries filter to enabled sources; the ScanManager scans all enabled sources with one aggregated progress stream; the settings sheet becomes a source manager. Spec: `docs/superpowers/specs/2026-07-06-multi-source-folders-design.md`.
 
@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-- All existing constraints from `docs/superpowers/plans/2026-07-06-photo-map.md` still bind (127.0.0.1 only, ms-epoch timestamps, thumb sizes {96,256,2048}, ESM `.js` import extensions inside `server/`, temp dirs in tests — never the real `~/.yufu`).
+- All existing constraints from `docs/superpowers/plans/2026-07-06-photo-map.md` still bind (127.0.0.1 only, ms-epoch timestamps, thumb sizes {96,256,2048}, ESM `.js` import extensions inside `server/`, temp dirs in tests — never the real `~/.galleria`).
 - `photos.source_id` is `INTEGER NOT NULL DEFAULT 0` with **no** SQL FOREIGN KEY clause (SQLite FK enforcement stays off; integrity is app-level via transactional `removeSource`). `source_id = 0` only ever exists pre-adoption and is invisible to all queries (0 is never a real source id).
 - "Enabled filter" SQL fragment, used verbatim in every photo query: `source_id IN (SELECT id FROM sources WHERE enabled = 1)`.
 - Nested-source rule: a new source may not equal, contain, or be contained by an existing source, compared on `path.resolve`d paths at path-separator boundaries (`/a/b` conflicts with `/a/b/c` but NOT with `/a/bc`). Violations → HTTP 409.
@@ -187,7 +187,7 @@ describe('sources', () => {
 
 describe('legacy migration', () => {
   it('adds source_id to an old-schema database; adoptLegacyPhotoDir backfills', () => {
-    const file = join(mkdtempSync(join(tmpdir(), 'yufu-db-mig-')), 'index.db')
+    const file = join(mkdtempSync(join(tmpdir(), 'galleria-db-mig-')), 'index.db')
     const legacy = new Database(file)
     legacy.exec(`
       CREATE TABLE photos (
@@ -209,7 +209,7 @@ describe('legacy migration', () => {
     expect(getPoints(migrated)).toHaveLength(1)
   })
   it('openDb is idempotent on an already-migrated database', () => {
-    const file = join(mkdtempSync(join(tmpdir(), 'yufu-db-mig2-')), 'index.db')
+    const file = join(mkdtempSync(join(tmpdir(), 'galleria-db-mig2-')), 'index.db')
     openDb(file).close()
     expect(listSources(openDb(file))).toHaveLength(0)
   })
@@ -568,7 +568,7 @@ let sourceId: number
 
 beforeEach(async () => {
   db = openDb(':memory:')
-  dir = mkdtempSync(join(tmpdir(), 'yufu-scan-'))
+  dir = mkdtempSync(join(tmpdir(), 'galleria-scan-'))
   sourceId = addSource(db, dir).id
   mkdirSync(join(dir, 'sub'))
   await makeJpeg(join(dir, 'a.jpg'), { lat: 41, lon: 29, takenAt: '2023:05:01 10:00:00' })
@@ -630,7 +630,7 @@ it('accepts a precomputed file list', async () => {
 })
 
 it('deletion sweep only touches its own source', async () => {
-  const otherDir = mkdtempSync(join(tmpdir(), 'yufu-scan-other-'))
+  const otherDir = mkdtempSync(join(tmpdir(), 'galleria-scan-other-'))
   await makeJpeg(join(otherDir, 'o.jpg'), { lat: 1, lon: 1, takenAt: '2022:01:01 10:00:00' })
   const otherId = addSource(db, otherDir).id
   await scanFolder(db, sourceId, dir)
@@ -680,7 +680,7 @@ let sourceId: number
 
 beforeEach(async () => {
   db = openDb(':memory:')
-  dir = mkdtempSync(join(tmpdir(), 'yufu-scan-stat-'))
+  dir = mkdtempSync(join(tmpdir(), 'galleria-scan-stat-'))
   sourceId = addSource(db, dir).id
   await makeJpeg(join(dir, 'a.jpg'), { lat: 41, lon: 29, takenAt: '2023:05:01 10:00:00' })
   await makeJpeg(join(dir, 'b.jpg'), { lat: 48.8, lon: 2.3, takenAt: '2024:07:01 10:00:00' })
@@ -836,7 +836,7 @@ import { ScanManager, type ScanAllResult } from '../src/scan-manager.js'
 import { makeJpeg } from './helpers/fixtures.js'
 
 function makeRoot() {
-  return mkdtempSync(join(tmpdir(), 'yufu-scanmgr-'))
+  return mkdtempSync(join(tmpdir(), 'galleria-scanmgr-'))
 }
 
 it('scans all enabled sources with globally aggregated progress', async () => {
@@ -1104,11 +1104,11 @@ async function waitForScan(a: FastifyInstance) {
 }
 
 beforeAll(async () => {
-  photoDir = mkdtempSync(join(tmpdir(), 'yufu-api-photos-'))
+  photoDir = mkdtempSync(join(tmpdir(), 'galleria-api-photos-'))
   await makeJpeg(join(photoDir, 'geo.jpg'), { lat: 41, lon: 29, takenAt: '2023:05:01 10:00:00' })
   await makeJpeg(join(photoDir, 'geo2.jpg'), { lat: 48.8, lon: 2.3, takenAt: '2024:07:01 10:00:00' })
   await makeJpeg(join(photoDir, 'nogps.jpg'), { takenAt: '2024:01:01 10:00:00' })
-  app = await buildApp({ dataDir: mkdtempSync(join(tmpdir(), 'yufu-api-data-')) })
+  app = await buildApp({ dataDir: mkdtempSync(join(tmpdir(), 'galleria-api-data-')) })
 })
 
 it('starts with no sources', async () => {
@@ -1212,7 +1212,7 @@ it('config routes are gone', async () => {
 })
 
 it('GET /api/sources reports exists=false for a vanished folder', async () => {
-  const data = mkdtempSync(join(tmpdir(), 'yufu-api-orphan-'))
+  const data = mkdtempSync(join(tmpdir(), 'galleria-api-orphan-'))
   const gone = join(data, 'gone')
   mkdirSync(gone)
   const a = await buildApp({ dataDir: data })
@@ -1223,8 +1223,8 @@ it('GET /api/sources reports exists=false for a vanished folder', async () => {
 })
 
 it('adopts a legacy config.photoDir into a source at startup and clears it', async () => {
-  const data = mkdtempSync(join(tmpdir(), 'yufu-api-legacy-'))
-  const legacyDir = mkdtempSync(join(tmpdir(), 'yufu-api-legacy-photos-'))
+  const data = mkdtempSync(join(tmpdir(), 'galleria-api-legacy-'))
+  const legacyDir = mkdtempSync(join(tmpdir(), 'galleria-api-legacy-photos-'))
   saveConfig(data, { photoDir: legacyDir })
   const a = await buildApp({ dataDir: data })
   const sources = (await a.inject({ method: 'GET', url: '/api/sources' })).json()
@@ -1266,10 +1266,10 @@ it('GET /api/photos/:id and /thumb/:id return 404 for non-numeric ids', async ()
 })
 
 it('GET /api/library returns date bounds spanning unlocated photos', async () => {
-  const isolatedPhotoDir = mkdtempSync(join(tmpdir(), 'yufu-api-bounds-photos-'))
+  const isolatedPhotoDir = mkdtempSync(join(tmpdir(), 'galleria-api-bounds-photos-'))
   await makeJpeg(join(isolatedPhotoDir, 'geo.jpg'), { lat: 41, lon: 29, takenAt: '2024:06:01 10:00:00' })
   await makeJpeg(join(isolatedPhotoDir, 'nogps.jpg'), { takenAt: '2020:01:01 10:00:00' })
-  const isolatedApp = await buildApp({ dataDir: mkdtempSync(join(tmpdir(), 'yufu-api-bounds-data-')) })
+  const isolatedApp = await buildApp({ dataDir: mkdtempSync(join(tmpdir(), 'galleria-api-bounds-data-')) })
   await isolatedApp.inject({ method: 'POST', url: '/api/sources', payload: { path: isolatedPhotoDir } })
   await waitForScan(isolatedApp)
   const { bounds } = (await isolatedApp.inject({ method: 'GET', url: '/api/library' })).json()
@@ -1597,7 +1597,7 @@ export default function App() {
   if (loadError) {
     return (
       <div className="first-run">
-        <h1>yufu</h1>
+        <h1>galleria</h1>
         <p>Can't reach the local server. Is it still running?</p>
         <button onClick={reloadSources}>Retry</button>
       </div>
@@ -1695,7 +1695,7 @@ export function FirstRun({ onConfigured }: { onConfigured: () => void }) {
 
   return (
     <div className="first-run">
-      <h1>yufu</h1>
+      <h1>galleria</h1>
       {!scanning ? (
         <>
           <p>Point me at your photo folder to build the map. You can add more folders later.</p>
@@ -1986,7 +1986,7 @@ Also change the file's `node:fs` import line to `import { mkdirSync, mkdtempSync
 Append at the END of `e2e/photo-map.spec.ts` (test order matters — this test mutates and then restores the source set):
 ```ts
 test('sources can be added, hidden, and removed', async ({ page, request }) => {
-  const tokyoDir = mkdtempSync(join(tmpdir(), 'yufu-e2e-tokyo-'))
+  const tokyoDir = mkdtempSync(join(tmpdir(), 'galleria-e2e-tokyo-'))
   for (let i = 0; i < 2; i++)
     await makeJpeg(join(tokyoDir, `tokyo${i}.jpg`), {
       lat: 35.68 + i * 0.001, lon: 139.76 + i * 0.001, takenAt: `2025:03:0${i + 1} 10:00:00`,

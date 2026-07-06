@@ -46,7 +46,7 @@ export default function App() {
   if (loadError) {
     return (
       <div className="first-run">
-        <h1>yufu</h1>
+        <h1>galleria</h1>
         <p>Can't reach the local server. Is it still running?</p>
         <button onClick={reloadSources}>Retry</button>
       </div>

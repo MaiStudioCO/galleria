@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { expect, it } from 'vitest'
 import { makeJpeg } from './helpers/fixtures.js'
 
-const dir = mkdtempSync(join(tmpdir(), 'yufu-fix-'))
+const dir = mkdtempSync(join(tmpdir(), 'galleria-fix-'))
 
 it('writes GPS and date EXIF that exifr can read back', async () => {
   const p = join(dir, 'a.jpg')
