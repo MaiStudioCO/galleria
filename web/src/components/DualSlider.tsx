@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 
 export interface DualSliderProps {
   min: number
@@ -11,6 +11,14 @@ export function DualSlider({ min, max, value, onChange }: DualSliderProps) {
   const track = useRef<HTMLDivElement>(null)
   const latest = useRef(value)
   latest.current = value
+  const dragCleanup = useRef<(() => void) | null>(null)
+
+  useEffect(() => {
+    return () => {
+      dragCleanup.current?.()
+      dragCleanup.current = null
+    }
+  }, [])
 
   const pct = (v: number) => (max === min ? 0 : ((v - min) / (max - min)) * 100)
 
@@ -26,9 +34,14 @@ export function DualSlider({ min, max, value, onChange }: DualSliderProps) {
     const onUp = () => {
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
+      dragCleanup.current = null
     }
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)
+    dragCleanup.current = () => {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+    }
   }
 
   return (
