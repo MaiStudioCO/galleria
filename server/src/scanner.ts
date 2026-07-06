@@ -33,7 +33,7 @@ export async function scanFolder(db: Db, folder: string, onProgress?: ProgressFn
   const files = entries
     .filter((e) => e.isFile() && EXTENSIONS.has(extname(e.name).toLowerCase()))
     .map((e) => join(e.parentPath, e.name))
-  const known = getIndexState(db)
+  const known = getIndexState(db, 0) // BRIDGE(Task 3): scanner becomes source-scoped in Task 3
   const result: ScanResult = { scanned: files.length, added: 0, updated: 0, removed: 0, skippedUnreadable: 0 }
   const seen = new Set<string>()
   let done = 0
@@ -58,7 +58,7 @@ export async function scanFolder(db: Db, folder: string, onProgress?: ProgressFn
     const record = await extractPhotoRecord(file)
     if (record === null) result.skippedUnreadable++
     else {
-      upsertPhoto(db, record)
+      upsertPhoto(db, record, 0) // BRIDGE(Task 3)
       if (prev) result.updated++
       else result.added++
     }
