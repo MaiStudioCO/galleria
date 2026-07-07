@@ -31,6 +31,16 @@ library takes a few minutes; after that it's instant.
 
 To run it again later, just `cd galleria` and `npm start`.
 
+### One-click launcher (optional)
+
+Prefer a Dock icon over the terminal? Run this once:
+
+    npm run make-app
+
+It builds **Galleria.app** on your Desktop with an icon. Double-click it to
+start the app (it opens your browser automatically), or drag it into your Dock
+for one-click launching. Re-run `npm run make-app` only if you move the folder.
+
 ## Update (whenever there's a new version)
 
 From the `galleria` folder:
