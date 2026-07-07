@@ -6,7 +6,7 @@
   "scripts": {
     "start": "npm run build -w web && tsx server/src/index.ts",
     "update": "git pull && npm install",
-    "make-app": "bash scripts/make-launcher.sh",
+    "make-app": "node scripts/make-app.mjs",
     "dev": "concurrently \"tsx watch server/src/index.ts\" \"npm run dev -w web\"",
     "test": "npm run test --workspaces --if-present",
     "e2e": "playwright test"

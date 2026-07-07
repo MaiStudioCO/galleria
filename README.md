@@ -33,13 +33,19 @@ To run it again later, just `cd galleria` and `npm start`.
 
 ### One-click launcher (optional)
 
-Prefer a Dock icon over the terminal? Run this once:
+Prefer an icon over the terminal? Run this once:
 
     npm run make-app
 
-It builds **Galleria.app** on your Desktop with an icon. Double-click it to
-start the app (it opens your browser automatically), or drag it into your Dock
-for one-click launching. Re-run `npm run make-app` only if you move the folder.
+- **macOS:** builds **Galleria.app** on your Desktop. Double-click it (it opens
+  your browser automatically), or drag it into your Dock.
+- **Windows:** builds a **Galleria** shortcut on your Desktop with an icon.
+  Double-click it, or right-click → Pin to taskbar / Start.
+
+Re-run `npm run make-app` only if you move the project folder.
+
+On **Windows** you can also just double-click **`Galleria.cmd`** in the project
+folder — no setup, it starts the app straight away.
 
 ## Update (whenever there's a new version)
 
