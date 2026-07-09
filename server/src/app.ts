@@ -8,6 +8,7 @@ import {
   addSource, adoptLegacyPhotoDir, getDateBounds, getPhoto, getPoints, getUnlocated,
   listSources, openDb, removeSource, setSourceEnabled,
 } from './db.js'
+import { realPick, type FolderPick } from './folder-picker.js'
 import { ScanManager } from './scan-manager.js'
 import { findNestingConflict } from './sources.js'
 import { getThumbPath, THUMB_SIZES } from './thumbs.js'
@@ -15,6 +16,8 @@ import { getThumbPath, THUMB_SIZES } from './thumbs.js'
 export interface AppContext {
   dataDir: string
   webDist?: string
+  /** Injectable for tests; defaults to the real OS dialog. */
+  pickFolder?: () => Promise<FolderPick>
 }
 
 function parseId(raw: string): number | null {
@@ -70,6 +73,13 @@ export async function buildApp(ctx: AppContext): Promise<FastifyInstance> {
     }
     void scanManager.start(db, source.id)
     return reply.code(201).send({ ...source, exists: true })
+  })
+
+  app.post('/api/pick-folder', async (_req, reply) => {
+    const pick = ctx.pickFolder ?? realPick
+    const result = await pick()
+    if (!result.supported) return reply.code(501).send({ error: 'folder picker not supported on this OS' })
+    return { path: result.path }
   })
 
   app.patch('/api/sources/:id', async (req, reply) => {

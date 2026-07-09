@@ -195,3 +195,31 @@ it('GET /api/library returns date bounds spanning unlocated photos', async () =>
   expect(new Date(bounds[0]).getUTCFullYear()).toBe(2020)
   expect(new Date(bounds[1]).getUTCFullYear()).toBe(2024)
 })
+
+it('POST /api/pick-folder returns the chosen path via the injected picker', async () => {
+  const a = await buildApp({
+    dataDir: mkdtempSync(join(tmpdir(), 'galleria-pick-')),
+    pickFolder: async () => ({ supported: true, path: '/Users/me/Pictures' }),
+  })
+  const res = await a.inject({ method: 'POST', url: '/api/pick-folder' })
+  expect(res.statusCode).toBe(200)
+  expect(res.json()).toEqual({ path: '/Users/me/Pictures' })
+})
+
+it('POST /api/pick-folder returns { path: null } when cancelled', async () => {
+  const a = await buildApp({
+    dataDir: mkdtempSync(join(tmpdir(), 'galleria-pick-')),
+    pickFolder: async () => ({ supported: true, path: null }),
+  })
+  const res = await a.inject({ method: 'POST', url: '/api/pick-folder' })
+  expect(res.json()).toEqual({ path: null })
+})
+
+it('POST /api/pick-folder is 501 when the OS is unsupported', async () => {
+  const a = await buildApp({
+    dataDir: mkdtempSync(join(tmpdir(), 'galleria-pick-')),
+    pickFolder: async () => ({ supported: false, path: null }),
+  })
+  const res = await a.inject({ method: 'POST', url: '/api/pick-folder' })
+  expect(res.statusCode).toBe(501)
+})
