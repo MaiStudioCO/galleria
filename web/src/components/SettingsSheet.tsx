@@ -36,9 +36,15 @@ export function SettingsSheet({ sources, onClose, onChanged, onQuit }: SettingsS
     onChanged()
   }
 
+  const [browsing, setBrowsing] = useState(false)
   const browse = async () => {
-    const { path } = await pickFolder()
-    if (path) setNewPath(path)
+    setBrowsing(true)
+    try {
+      const { path } = await pickFolder()
+      if (path) setNewPath(path)
+    } finally {
+      setBrowsing(false)
+    }
   }
 
   const toggle = async (s: Source) => {
@@ -109,8 +115,8 @@ export function SettingsSheet({ sources, onClose, onChanged, onQuit }: SettingsS
         <button data-testid="add-source-submit" onClick={() => void add()}>
           Add
         </button>
-        <button data-testid="add-source-browse" onClick={() => void browse()}>
-          Browse…
+        <button data-testid="add-source-browse" disabled={browsing} onClick={() => void browse()}>
+          {browsing ? 'Choosing…' : 'Browse…'}
         </button>
       </div>
       <div className="row">
@@ -118,9 +124,14 @@ export function SettingsSheet({ sources, onClose, onChanged, onQuit }: SettingsS
       </div>
       <div className="row">
         {confirmQuit ? (
-          <button className="danger" data-testid="quit-button" onClick={() => void quit()}>
-            Quit — are you sure?
-          </button>
+          <>
+            <button className="danger" data-testid="quit-button" onClick={() => void quit()}>
+              Quit — are you sure?
+            </button>
+            <button data-testid="quit-cancel" onClick={() => setConfirmQuit(false)}>
+              Cancel
+            </button>
+          </>
         ) : (
           <button data-testid="quit-button" onClick={() => setConfirmQuit(true)}>
             Quit galleria

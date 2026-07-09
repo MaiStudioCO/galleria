@@ -27,6 +27,13 @@ function parseId(raw: string): number | null {
   return Number.isInteger(n) && n >= 0 ? n : null
 }
 
+/** True when a Host/Origin authority (e.g. "127.0.0.1:3000", "localhost", "[::1]:3000") is a loopback address. */
+function isLoopbackHost(authority: string | undefined): boolean {
+  if (!authority) return false
+  const host = authority.replace(/:\d+$/, '').replace(/^\[|\]$/g, '').toLowerCase()
+  return host === '127.0.0.1' || host === 'localhost' || host === '::1'
+}
+
 export async function buildApp(ctx: AppContext): Promise<FastifyInstance> {
   mkdirSync(ctx.dataDir, { recursive: true })
   const db = openDb(join(ctx.dataDir, 'index.db'))
@@ -40,7 +47,28 @@ export async function buildApp(ctx: AppContext): Promise<FastifyInstance> {
 
   const scanManager = new ScanManager()
   const app = Fastify()
-  const onShutdown = ctx.onShutdown ?? (async () => { await app.close(); process.exit(0) })
+  // Always exit, even if app.close() rejects, so quitting deterministically frees the port.
+  const onShutdown = ctx.onShutdown ?? (() => { void app.close().finally(() => process.exit(0)) })
+
+  // Localhost-only guard: reject requests whose Host isn't loopback (defends DNS
+  // rebinding), and state-changing requests whose Origin isn't loopback (defends a
+  // foreign site POSTing to 127.0.0.1). Same-origin app calls, the Vite dev proxy,
+  // curl, and the e2e client all pass; a website you visit cannot fire these routes.
+  app.addHook('onRequest', async (req, reply) => {
+    if (!isLoopbackHost(req.headers.host)) {
+      return reply.code(403).send({ error: 'forbidden' })
+    }
+    const origin = req.headers.origin
+    if (origin !== undefined && req.method !== 'GET' && req.method !== 'HEAD') {
+      let ok = false
+      try {
+        ok = isLoopbackHost(new URL(origin).host)
+      } catch {
+        ok = false
+      }
+      if (!ok) return reply.code(403).send({ error: 'forbidden' })
+    }
+  })
 
   app.get('/health', async () => ({ ok: true }))
 

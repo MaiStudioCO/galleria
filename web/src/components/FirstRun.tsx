@@ -6,6 +6,7 @@ export function FirstRun({ onConfigured }: { onConfigured: () => void }) {
   const [dir, setDir] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [scanning, setScanning] = useState(false)
+  const [browsing, setBrowsing] = useState(false)
   const { progress } = useScanEvents(onConfigured)
 
   const submit = async () => {
@@ -20,8 +21,13 @@ export function FirstRun({ onConfigured }: { onConfigured: () => void }) {
   }
 
   const browse = async () => {
-    const { path } = await pickFolder()
-    if (path) setDir(path)
+    setBrowsing(true)
+    try {
+      const { path } = await pickFolder()
+      if (path) setDir(path)
+    } finally {
+      setBrowsing(false)
+    }
   }
 
   return (
@@ -40,8 +46,8 @@ export function FirstRun({ onConfigured }: { onConfigured: () => void }) {
           <button data-testid="folder-submit" onClick={() => void submit()}>
             Scan photos
           </button>
-          <button data-testid="folder-browse" onClick={() => void browse()}>
-            Browse…
+          <button data-testid="folder-browse" disabled={browsing} onClick={() => void browse()}>
+            {browsing ? 'Choosing…' : 'Browse…'}
           </button>
           {error && <p className="error">{error}</p>}
         </>

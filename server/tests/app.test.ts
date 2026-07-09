@@ -237,3 +237,25 @@ it('POST /api/shutdown responds ok and fires the shutdown hook once', async () =
   expect(calls).toBe(1)
   await a.close()
 })
+
+it('rejects a request whose Host header is not loopback (DNS-rebinding guard)', async () => {
+  const res = await app.inject({ method: 'GET', url: '/health', headers: { host: 'evil.example.com' } })
+  expect(res.statusCode).toBe(403)
+})
+
+it('rejects a state-changing request carrying a non-loopback Origin', async () => {
+  const res = await app.inject({
+    method: 'POST', url: '/api/scan',
+    headers: { host: '127.0.0.1:3000', origin: 'https://evil.example.com' },
+  })
+  expect(res.statusCode).toBe(403)
+})
+
+it('allows loopback Host + loopback Origin', async () => {
+  const res = await app.inject({
+    method: 'GET', url: '/health',
+    headers: { host: '127.0.0.1:3000', origin: 'http://127.0.0.1:3000' },
+  })
+  expect(res.statusCode).toBe(200)
+  expect(res.json()).toEqual({ ok: true })
+})

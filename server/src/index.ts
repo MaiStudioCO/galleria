@@ -19,7 +19,7 @@ const result = await startOrAttach({ app, host, port, openBrowser })
 
 if (result === 'started') {
   console.log(`galleria running at ${url} (data: ${dataDir})`)
-  const stop = () => void app.close().then(() => process.exit(0))
+  const stop = () => void app.close().finally(() => process.exit(0))
   process.on('SIGTERM', stop)
   process.on('SIGINT', stop)
 } else {
