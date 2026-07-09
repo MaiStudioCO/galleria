@@ -49,15 +49,15 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
 </plist>
 PLIST
 
-# 3. The launcher itself. Runs `npm start` with a Terminal-like PATH so node/npm
-#    are found (Homebrew, nvm, or a custom npm prefix). Quitting the app (Dock ->
-#    Quit) stops the local server too.
+# 3. The launcher itself. Builds the web app, then EXECs the server so node IS the
+#    app's process — quitting the app (Dock -> Quit, or force-quit) kills node
+#    directly and frees the port. A Terminal-like PATH makes node/npm resolvable.
 cat > "$APP/Contents/MacOS/galleria" <<LAUNCH
 #!/bin/zsh
 export PATH="\$(/bin/zsh -lc 'echo \$PATH' 2>/dev/null):/opt/homebrew/bin:/usr/local/bin:\$HOME/.npm-global/bin:\$PATH"
 cd "$REPO" || exit 1
-trap 'kill 0' EXIT INT TERM
-npm start
+npm run build -w web || exit 1
+exec node_modules/.bin/tsx server/src/index.ts
 LAUNCH
 chmod +x "$APP/Contents/MacOS/galleria"
 
