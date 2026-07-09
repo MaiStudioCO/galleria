@@ -16,12 +16,20 @@ You need two free tools first:
 - **Node.js** version 20.19 or newer — https://nodejs.org (the "LTS" download)
 - **git** — https://git-scm.com/downloads
 
-Then, in a terminal:
+Then, in a terminal (from your **home folder** — see the macOS note below):
 
+    cd ~
     git clone https://github.com/MaiStudioCO/galleria.git
     cd galleria
     npm install
     npm start
+
+> **macOS:** keep this folder in your home directory (e.g. `~/galleria`), **not**
+> in Desktop, Documents, or Downloads. Those folders have privacy protections
+> that stop the one-click **Galleria.app** from launching (it opens and instantly
+> quits). Running from `~/galleria` avoids it. If you already cloned into a
+> protected folder, move it — `mv ~/Desktop/galleria ~/galleria` — then re-run
+> `npm run make-app`.
 
 `npm start` builds the app, starts it at http://127.0.0.1:3000, and opens your
 browser. On first launch, click **Browse…** to pick a photo folder (or paste its path).
