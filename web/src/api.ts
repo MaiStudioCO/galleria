@@ -57,3 +57,7 @@ export const patchSource = (id: number, enabled: boolean) =>
   fetch(`/api/sources/${id}`, json('PATCH', { enabled }))
 export const deleteSource = (id: number) => fetch(`/api/sources/${id}`, { method: 'DELETE' })
 export const startScan = () => fetch('/api/scan', { method: 'POST' })
+export const pickFolder = () =>
+  fetch('/api/pick-folder', { method: 'POST' }).then(
+    (r) => (r.ok ? (r.json() as Promise<{ path: string | null }>) : { path: null }),
+  )

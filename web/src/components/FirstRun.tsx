@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { addSource } from '../api'
+import { addSource, pickFolder } from '../api'
 import { useScanEvents } from '../hooks/useScanEvents'
 
 export function FirstRun({ onConfigured }: { onConfigured: () => void }) {
@@ -19,6 +19,11 @@ export function FirstRun({ onConfigured }: { onConfigured: () => void }) {
     setScanning(true)
   }
 
+  const browse = async () => {
+    const { path } = await pickFolder()
+    if (path) setDir(path)
+  }
+
   return (
     <div className="first-run">
       <h1>galleria</h1>
@@ -34,6 +39,9 @@ export function FirstRun({ onConfigured }: { onConfigured: () => void }) {
           />
           <button data-testid="folder-submit" onClick={() => void submit()}>
             Scan photos
+          </button>
+          <button data-testid="folder-browse" onClick={() => void browse()}>
+            Browse…
           </button>
           {error && <p className="error">{error}</p>}
         </>

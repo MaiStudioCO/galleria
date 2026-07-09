@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { addSource, deleteSource, patchSource, startScan, type Source } from '../api'
+import { addSource, deleteSource, patchSource, pickFolder, startScan, type Source } from '../api'
 import { useScanEvents } from '../hooks/useScanEvents'
 
 export interface SettingsSheetProps {
@@ -33,6 +33,11 @@ export function SettingsSheet({ sources, onClose, onChanged }: SettingsSheetProp
     setNewPath('')
     setStatus('Folder added — scanning…')
     onChanged()
+  }
+
+  const browse = async () => {
+    const { path } = await pickFolder()
+    if (path) setNewPath(path)
   }
 
   const toggle = async (s: Source) => {
@@ -96,6 +101,9 @@ export function SettingsSheet({ sources, onClose, onChanged }: SettingsSheetProp
         />
         <button data-testid="add-source-submit" onClick={() => void add()}>
           Add
+        </button>
+        <button data-testid="add-source-browse" onClick={() => void browse()}>
+          Browse…
         </button>
       </div>
       <div className="row">
