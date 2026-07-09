@@ -61,3 +61,4 @@ export const pickFolder = () =>
   fetch('/api/pick-folder', { method: 'POST' }).then(
     (r) => (r.ok ? (r.json() as Promise<{ path: string | null }>) : { path: null }),
   )
+export const shutdown = () => fetch('/api/shutdown', { method: 'POST' })
