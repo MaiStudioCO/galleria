@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react'
-import { addSource, deleteSource, patchSource, startScan, type Source } from '../api'
+import { addSource, deleteSource, patchSource, pickFolder, shutdown, startScan, type Source } from '../api'
 import { useScanEvents } from '../hooks/useScanEvents'
 
 export interface SettingsSheetProps {
   sources: Source[]
   onClose: () => void
   onChanged: () => void
+  onQuit: () => void
 }
 
-export function SettingsSheet({ sources, onClose, onChanged }: SettingsSheetProps) {
+export function SettingsSheet({ sources, onClose, onChanged, onQuit }: SettingsSheetProps) {
   const [newPath, setNewPath] = useState('')
   const [status, setStatus] = useState<string | null>(null)
   const [confirmRemove, setConfirmRemove] = useState<number | null>(null)
@@ -35,6 +36,11 @@ export function SettingsSheet({ sources, onClose, onChanged }: SettingsSheetProp
     onChanged()
   }
 
+  const browse = async () => {
+    const { path } = await pickFolder()
+    if (path) setNewPath(path)
+  }
+
   const toggle = async (s: Source) => {
     await patchSource(s.id, !s.enabled)
     onChanged()
@@ -50,6 +56,12 @@ export function SettingsSheet({ sources, onClose, onChanged }: SettingsSheetProp
   const rescan = async () => {
     await startScan()
     setStatus('Rescanning…')
+  }
+
+  const [confirmQuit, setConfirmQuit] = useState(false)
+  const quit = async () => {
+    await shutdown()
+    onQuit()
   }
 
   return (
@@ -97,9 +109,23 @@ export function SettingsSheet({ sources, onClose, onChanged }: SettingsSheetProp
         <button data-testid="add-source-submit" onClick={() => void add()}>
           Add
         </button>
+        <button data-testid="add-source-browse" onClick={() => void browse()}>
+          Browse…
+        </button>
       </div>
       <div className="row">
         <button onClick={() => void rescan()}>Rescan all</button>
+      </div>
+      <div className="row">
+        {confirmQuit ? (
+          <button className="danger" data-testid="quit-button" onClick={() => void quit()}>
+            Quit — are you sure?
+          </button>
+        ) : (
+          <button data-testid="quit-button" onClick={() => setConfirmQuit(true)}>
+            Quit galleria
+          </button>
+        )}
       </div>
       {running && (
         <p>

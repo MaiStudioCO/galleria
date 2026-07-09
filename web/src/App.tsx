@@ -19,6 +19,7 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [loadError, setLoadError] = useState(false)
   const [focus, setFocus] = useState<{ lat: number; lon: number; seq: number } | null>(null)
+  const [stopped, setStopped] = useState(false)
 
   const loadLibrary = useCallback(async () => {
     const [pts, library] = await Promise.all([fetchPoints(), fetchLibrary()])
@@ -57,6 +58,15 @@ export default function App() {
 
   if (sources.length === 0) {
     return <FirstRun onConfigured={reloadSources} />
+  }
+
+  if (stopped) {
+    return (
+      <div className="first-run">
+        <h1>galleria</h1>
+        <p>galleria has stopped — you can close this tab.</p>
+      </div>
+    )
   }
 
   const missing = sources.filter((s) => s.enabled && !s.exists)
@@ -109,6 +119,7 @@ export default function App() {
           sources={sources}
           onClose={() => setSettingsOpen(false)}
           onChanged={reloadSources}
+          onQuit={() => setStopped(true)}
         />
       )}
     </>

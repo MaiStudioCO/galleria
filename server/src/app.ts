@@ -8,6 +8,7 @@ import {
   addSource, adoptLegacyPhotoDir, getDateBounds, getPhoto, getPoints, getUnlocated,
   listSources, openDb, removeSource, setSourceEnabled,
 } from './db.js'
+import { realPick, type FolderPick } from './folder-picker.js'
 import { ScanManager } from './scan-manager.js'
 import { findNestingConflict } from './sources.js'
 import { getThumbPath, THUMB_SIZES } from './thumbs.js'
@@ -15,6 +16,10 @@ import { getThumbPath, THUMB_SIZES } from './thumbs.js'
 export interface AppContext {
   dataDir: string
   webDist?: string
+  /** Injectable for tests; defaults to the real OS dialog. */
+  pickFolder?: () => Promise<FolderPick>
+  /** Injectable for tests; defaults to closing the server and exiting the process. */
+  onShutdown?: () => void | Promise<void>
 }
 
 function parseId(raw: string): number | null {
@@ -35,6 +40,7 @@ export async function buildApp(ctx: AppContext): Promise<FastifyInstance> {
 
   const scanManager = new ScanManager()
   const app = Fastify()
+  const onShutdown = ctx.onShutdown ?? (async () => { await app.close(); process.exit(0) })
 
   app.get('/health', async () => ({ ok: true }))
 
@@ -70,6 +76,13 @@ export async function buildApp(ctx: AppContext): Promise<FastifyInstance> {
     }
     void scanManager.start(db, source.id)
     return reply.code(201).send({ ...source, exists: true })
+  })
+
+  app.post('/api/pick-folder', async (_req, reply) => {
+    const pick = ctx.pickFolder ?? realPick
+    const result = await pick()
+    if (!result.supported) return reply.code(501).send({ error: 'folder picker not supported on this OS' })
+    return { path: result.path }
   })
 
   app.patch('/api/sources/:id', async (req, reply) => {
@@ -135,6 +148,13 @@ export async function buildApp(ctx: AppContext): Promise<FastifyInstance> {
     if (scanManager.running) return reply.code(409).send({ error: 'scan in progress' })
     void scanManager.start(db)
     return reply.code(202).send({ started: true })
+  })
+
+  app.post('/api/shutdown', async () => {
+    // Respond first, then shut down — the 50 ms delay lets the reply flush to the
+    // browser before the process exits and the port is freed.
+    setTimeout(() => { void onShutdown() }, 50)
+    return { ok: true }
   })
 
   app.get('/api/scan/status', async () => ({

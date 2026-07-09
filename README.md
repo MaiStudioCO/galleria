@@ -24,9 +24,9 @@ Then, in a terminal:
     npm start
 
 `npm start` builds the app, starts it at http://127.0.0.1:3000, and opens your
-browser. On first launch, paste the path to a photo folder (e.g.
-`/Users/you/Pictures`). Add more folders anytime from the settings gear (⚙),
-where each folder can also be hidden or removed. The first scan of a large
+browser. On first launch, click **Browse…** to pick a photo folder (or paste its path).
+Add more folders anytime from the settings gear (⚙), where each folder can also
+be hidden or removed, and a **Quit galleria** button cleanly stops the app. The first scan of a large
 library takes a few minutes; after that it's instant.
 
 To run it again later, just `cd galleria` and `npm start`.
