@@ -223,3 +223,17 @@ it('POST /api/pick-folder is 501 when the OS is unsupported', async () => {
   const res = await a.inject({ method: 'POST', url: '/api/pick-folder' })
   expect(res.statusCode).toBe(501)
 })
+
+it('POST /api/shutdown responds ok and fires the shutdown hook once', async () => {
+  let calls = 0
+  const a = await buildApp({
+    dataDir: mkdtempSync(join(tmpdir(), 'galleria-shutdown-')),
+    onShutdown: () => { calls++ },
+  })
+  const res = await a.inject({ method: 'POST', url: '/api/shutdown' })
+  expect(res.statusCode).toBe(200)
+  expect(res.json()).toEqual({ ok: true })
+  await new Promise((r) => setTimeout(r, 90))
+  expect(calls).toBe(1)
+  await a.close()
+})

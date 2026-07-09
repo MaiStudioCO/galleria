@@ -18,6 +18,8 @@ export interface AppContext {
   webDist?: string
   /** Injectable for tests; defaults to the real OS dialog. */
   pickFolder?: () => Promise<FolderPick>
+  /** Injectable for tests; defaults to closing the server and exiting the process. */
+  onShutdown?: () => void | Promise<void>
 }
 
 function parseId(raw: string): number | null {
@@ -38,6 +40,7 @@ export async function buildApp(ctx: AppContext): Promise<FastifyInstance> {
 
   const scanManager = new ScanManager()
   const app = Fastify()
+  const onShutdown = ctx.onShutdown ?? (async () => { await app.close(); process.exit(0) })
 
   app.get('/health', async () => ({ ok: true }))
 
@@ -145,6 +148,13 @@ export async function buildApp(ctx: AppContext): Promise<FastifyInstance> {
     if (scanManager.running) return reply.code(409).send({ error: 'scan in progress' })
     void scanManager.start(db)
     return reply.code(202).send({ started: true })
+  })
+
+  app.post('/api/shutdown', async () => {
+    // Respond first, then shut down — the 50 ms delay lets the reply flush to the
+    // browser before the process exits and the port is freed.
+    setTimeout(() => { void onShutdown() }, 50)
+    return { ok: true }
   })
 
   app.get('/api/scan/status', async () => ({

@@ -17,5 +17,11 @@ const app = await buildApp({ dataDir, webDist })
 const openBrowser = process.env.GALLERIA_NO_OPEN ? async () => {} : (u: string) => open(u)
 const result = await startOrAttach({ app, host, port, openBrowser })
 
-if (result === 'started') console.log(`galleria running at ${url} (data: ${dataDir})`)
-else console.log(`galleria is already running — opened ${url} in your browser`)
+if (result === 'started') {
+  console.log(`galleria running at ${url} (data: ${dataDir})`)
+  const stop = () => void app.close().then(() => process.exit(0))
+  process.on('SIGTERM', stop)
+  process.on('SIGINT', stop)
+} else {
+  console.log(`galleria is already running — opened ${url} in your browser`)
+}
