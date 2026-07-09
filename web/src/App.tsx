@@ -56,6 +56,10 @@ export default function App() {
 
   if (sources === undefined) return null
 
+  if (sources.length === 0) {
+    return <FirstRun onConfigured={reloadSources} />
+  }
+
   if (stopped) {
     return (
       <div className="first-run">
@@ -63,10 +67,6 @@ export default function App() {
         <p>galleria has stopped — you can close this tab.</p>
       </div>
     )
-  }
-
-  if (sources.length === 0) {
-    return <FirstRun onConfigured={reloadSources} />
   }
 
   const missing = sources.filter((s) => s.enabled && !s.exists)
